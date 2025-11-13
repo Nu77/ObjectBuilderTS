@@ -68,22 +68,12 @@ export const LoadFilesDialog: React.FC<LoadFilesDialogProps> = ({
   const loadVersions = async () => {
     setLoading(true);
     try {
-      // Try to load versions from the default path
-      // The backend should have loaded versions.xml on startup
-      // For now, we'll try to request versions or use LoadVersionsCommand
-      // Note: This requires the versions.xml file path
-      // The default path is typically in firstRun/versions.xml
-      
-      // Since we don't have a GetVersionsListCommand, we'll try to load from default path
-      // The backend should have already loaded versions on startup
-      // We'll show a message that versions will be auto-detected
-      
-      // TODO: Create GetVersionsListCommand in backend to get loaded versions
-      // For now, versions will be auto-detected from file signatures
-      setVersions([]);
+      // Request versions list from backend
+      const command = CommandFactory.createGetVersionsListCommand();
+      await worker.sendCommand(command);
+      // Versions will be received via SetVersionsCommand in the useEffect listener
     } catch (error) {
       console.error('Failed to load versions:', error);
-    } finally {
       setLoading(false);
     }
   };

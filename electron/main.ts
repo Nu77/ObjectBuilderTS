@@ -152,6 +152,17 @@ function serializeCommand(command: WorkerCommand): any {
   } else if (commandName === 'SetThingDataCommand') {
     const cmd = command as any;
     serialized.data = serializeThingData(cmd.data || cmd.thingData);
+  } else if (commandName === 'SetVersionsCommand') {
+    const cmd = command as any;
+    serialized.data = {
+      versions: (cmd.versions || []).map((version: any) => ({
+        value: version.value,
+        valueStr: version.valueStr,
+        datSignature: version.datSignature,
+        sprSignature: version.sprSignature,
+        otbVersion: version.otbVersion,
+      })),
+    };
   } else {
     // For other commands, serialize all properties
     serialized.data = serializeObject(command);
@@ -396,6 +407,8 @@ function setupIpcHandlers(): void {
         'ExportThingCommand': 'things/ExportThingCommand',
         'ExportSpritesCommand': 'sprites/ExportSpritesCommand',
         'MergeFilesCommand': 'files/MergeFilesCommand',
+        'GetVersionsListCommand': 'GetVersionsListCommand',
+        'UnloadFilesCommand': 'files/UnloadFilesCommand',
       };
 
       const commandPath = commandMap[typeName];

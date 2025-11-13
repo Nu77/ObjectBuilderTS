@@ -93,7 +93,7 @@ export class CommandFactory {
   static createImportSpritesFromFilesCommand(filePaths: string[]): CommandData {
     return {
       type: 'ImportSpritesFromFileCommand',
-      list: filePaths.map((filePath, index) => ({
+      list: filePaths.map((filePath) => ({
         id: 0, // PathHelper id - backend will assign proper sprite IDs when adding
         nativePath: filePath, // PathHelper nativePath
       })),
@@ -166,6 +166,18 @@ export class CommandFactory {
     return {
       type: 'LoadVersionsCommand',
       path: filePath,
+    };
+  }
+
+  static createGetVersionsListCommand(): CommandData {
+    return {
+      type: 'GetVersionsListCommand',
+    };
+  }
+
+  static createUnloadFilesCommand(): CommandData {
+    return {
+      type: 'UnloadFilesCommand',
     };
   }
 }

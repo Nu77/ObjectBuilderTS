@@ -1,7 +1,7 @@
 # UI Development Progress
 
 ## Overview
-The UI is now **98% complete** with all major components functional and connected to the backend.
+The UI is now **99% complete** with all major components functional and connected to the backend.
 
 ## Completed Components ✅
 
@@ -18,12 +18,13 @@ The UI is now **98% complete** with all major components functional and connecte
 - ✅ **AboutDialog** - Application information
 - ✅ **PreferencesDialog** - Settings management (loads and saves to backend)
 - ✅ **FindDialog** - Search functionality with navigation to results
-- ✅ **LoadFilesDialog** - Load project files
+- ✅ **LoadFilesDialog** - Load project files with versions list
 - ✅ **NewProjectDialog** - Create new project
 - ✅ **CompileOptionsDialog** - Compile project with options
 - ✅ **ImportDialog** - Import things/sprites
 - ✅ **ExportDialog** - Export things/sprites (connected to app state)
 - ✅ **MergeFilesDialog** - Merge project files
+- ✅ **ConfirmDialog** - Reusable confirmation dialog component
 
 ### Services & Infrastructure
 - ✅ **WorkerService** - Backend communication via Electron IPC
@@ -68,13 +69,26 @@ The UI is now **98% complete** with all major components functional and connecte
 5. ✅ PreviewCanvas - Updated to handle ArrayBuffer pixel data from IPC
 6. ✅ ObjectBuilderWorker - Added explicit clientLoadComplete trigger after file loading
 
+### Session 6: Versions List & Unload Project
+1. ✅ GetVersionsListCommand - Created command to request versions from backend
+2. ✅ SetVersionsCommand - Created command to send versions to UI
+3. ✅ LoadFilesDialog - Now requests and displays versions list from backend
+4. ✅ ObjectBuilderWorker - Added getVersionsListCallback to handle version requests
+5. ✅ CommandFactory - Added createGetVersionsListCommand method
+6. ✅ Electron IPC - Added GetVersionsListCommand to command map
+7. ✅ ConfirmDialog - New reusable confirmation dialog component
+8. ✅ Unload Project - Added unload functionality with confirmation dialog
+9. ✅ Toolbar - Added unload button with clientChanged state tracking
+10. ✅ CommandFactory - Added createUnloadFilesCommand method
+11. ✅ MISSING_FEATURES.md - Comprehensive list of all missing features from ActionScript version
+
 ## Remaining Tasks
 
 ### High Priority
-1. ⏳ **LoadFilesDialog** - Load versions list from backend
-   - Listener added for SetVersionsCommand (if backend sends it)
-   - Backend needs GetVersionsListCommand or should send versions on startup
-   - Currently shows auto-detect message (works but versions list would be nice)
+1. ✅ **LoadFilesDialog** - Load versions list from backend (COMPLETED)
+   - GetVersionsListCommand implemented
+   - SetVersionsCommand implemented
+   - Versions now load and display in dropdown
 
 ### Medium Priority
 2. ⏳ **Animation Support** - Complete animation preview

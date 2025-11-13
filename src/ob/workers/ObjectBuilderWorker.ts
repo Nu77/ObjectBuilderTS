@@ -51,6 +51,8 @@ import { ProgressCommand } from "../commands/ProgressCommand";
 import { HideProgressBarCommand } from "../commands/HideProgressBarCommand";
 import { SettingsCommand } from "../commands/SettingsCommand";
 import { LoadVersionsCommand } from "../commands/LoadVersionsCommand";
+import { GetVersionsListCommand } from "../commands/GetVersionsListCommand";
+import { SetVersionsCommand } from "../commands/SetVersionsCommand";
 import { LoadSpriteDimensionsCommand } from "../commands/LoadSpriteDimensionsCommand";
 import { SetSpriteDimensionCommand } from "../commands/SetSpriteDimensionCommand";
 import { CreateNewFilesCommand } from "../commands/files/CreateNewFilesCommand";
@@ -246,6 +248,7 @@ export class ObjectBuilderWorker extends EventEmitter {
         // Register callbacks
         this._communicator.registerCallback(SettingsCommand, this.settingsCallback.bind(this));
         this._communicator.registerCallback(LoadVersionsCommand, this.loadClientVersionsCallback.bind(this));
+        this._communicator.registerCallback(GetVersionsListCommand, this.getVersionsListCallback.bind(this));
         this._communicator.registerCallback(LoadSpriteDimensionsCommand, this.loadSpriteDimensionsCallback.bind(this));
         this._communicator.registerCallback(SetSpriteDimensionCommand, this.setSpriteDimensionCallback.bind(this));
 
@@ -300,6 +303,16 @@ export class ObjectBuilderWorker extends EventEmitter {
             throw new Error("path cannot be null or empty");
         }
         VersionStorage.getInstance().load(filePath);
+        // After loading versions, send them to the UI
+        this.getVersionsListCallback();
+    }
+
+    private getVersionsListCallback(): void {
+        const versionStorage = VersionStorage.getInstance();
+        if (versionStorage.loaded) {
+            const versions = versionStorage.getList();
+            this.sendCommand(new SetVersionsCommand(versions));
+        }
     }
 
     private loadSpriteDimensionsCallback(filePath: string): void {

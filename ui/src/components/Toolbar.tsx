@@ -8,6 +8,7 @@ import { FileDialogService } from '../services/FileDialogService';
 import { LoadFilesDialog } from './LoadFilesDialog';
 import { NewProjectDialog } from './NewProjectDialog';
 import { CompileOptionsDialog } from './CompileOptionsDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import './Toolbar.css';
 
 // Category constants (matching backend)
@@ -26,8 +27,23 @@ export const Toolbar: React.FC = () => {
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
   const [compileDialogOpen, setCompileDialogOpen] = useState(false);
+  const [unloadConfirmOpen, setUnloadConfirmOpen] = useState(false);
   const [selectedDatFile, setSelectedDatFile] = useState<string | undefined>();
   const [selectedSprFile, setSelectedSprFile] = useState<string | undefined>();
+  const [clientChanged, setClientChanged] = useState(false);
+  const [clientLoaded, setClientLoaded] = useState(false);
+
+  // Listen for client info changes
+  useEffect(() => {
+    const handleCommand = (command: any) => {
+      if (command.type === 'SetClientInfoCommand' && command.data) {
+        setClientLoaded(command.data.loaded || false);
+        setClientChanged(command.data.changed || false);
+      }
+    };
+
+    worker.onCommand(handleCommand);
+  }, [worker]);
 
   // Listen for menu actions
   useEffect(() => {
@@ -185,6 +201,46 @@ export const Toolbar: React.FC = () => {
     }
   };
 
+  const handleUnload = () => {
+    if (!clientLoaded) return;
+    
+    if (clientChanged) {
+      // Show confirmation dialog
+      setUnloadConfirmOpen(true);
+    } else {
+      // No changes, unload directly
+      performUnload();
+    }
+  };
+
+  const performUnload = async () => {
+    try {
+      showProgress('Unloading project...');
+      const command = CommandFactory.createUnloadFilesCommand();
+      const result = await worker.sendCommand(command);
+      hideProgress();
+      if (result.success) {
+        showSuccess('Project unloaded successfully');
+        setUnloadConfirmOpen(false);
+      } else {
+        showError(result.error || 'Failed to unload project');
+      }
+    } catch (error: any) {
+      hideProgress();
+      showError(error.message || 'Failed to unload project');
+      console.error('Failed to unload:', error);
+    }
+  };
+
+  const handleUnloadConfirm = () => {
+    // User confirmed, unload without saving
+    performUnload();
+  };
+
+  const handleUnloadCancel = () => {
+    setUnloadConfirmOpen(false);
+  };
+
   const handleCategoryChange = (category: string) => {
     setCategory(category);
     // ThingList component will automatically reload when category changes
@@ -203,6 +259,14 @@ export const Toolbar: React.FC = () => {
           </button>
           <button className="toolbar-button" title="Save Project" disabled>
             <span>Save</span>
+          </button>
+          <button 
+            className="toolbar-button" 
+            title="Unload Project" 
+            onClick={handleUnload}
+            disabled={!clientLoaded}
+          >
+            <span>Unload</span>
           </button>
           <div className="toolbar-separator" />
           <button className="toolbar-button" title="Compile" onClick={handleCompile}>
@@ -260,6 +324,16 @@ export const Toolbar: React.FC = () => {
         open={compileDialogOpen}
         onClose={() => setCompileDialogOpen(false)}
         onCompile={handleCompileWithOptions}
+      />
+      <ConfirmDialog
+        open={unloadConfirmOpen}
+        title="Unload Project"
+        message="You have unsaved changes. Are you sure you want to unload the project? All unsaved changes will be lost."
+        confirmLabel="Unload"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleUnloadConfirm}
+        onCancel={handleUnloadCancel}
       />
     </>
   );

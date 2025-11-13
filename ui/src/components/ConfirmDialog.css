@@ -1,0 +1,11 @@
+.confirm-dialog-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.confirm-dialog-content p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
