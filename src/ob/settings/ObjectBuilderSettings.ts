@@ -23,6 +23,9 @@ export class ObjectBuilderSettings implements ISettings {
     public windowWidth: number = 1024;
     public windowHeight: number = 768;
 
+    // Recent files (max 10)
+    private _recentFiles: Array<{ datFile: string; sprFile: string; timestamp: number }> = [];
+
     // Default frame durations by category
     private _defaultDurations: Map<string, number> = new Map([
         ["item", 100],
@@ -47,6 +50,29 @@ export class ObjectBuilderSettings implements ISettings {
         this._defaultDurations.set(category.toLowerCase(), duration);
     }
 
+    public getRecentFiles(): Array<{ datFile: string; sprFile: string; timestamp: number }> {
+        return this._recentFiles;
+    }
+
+    public addRecentFile(datFile: string, sprFile: string): void {
+        // Remove existing entry if it exists
+        this._recentFiles = this._recentFiles.filter(
+            (f) => !(f.datFile === datFile && f.sprFile === sprFile)
+        );
+        
+        // Add to beginning
+        this._recentFiles.unshift({ datFile, sprFile, timestamp: Date.now() });
+        
+        // Keep only last 10
+        if (this._recentFiles.length > 10) {
+            this._recentFiles = this._recentFiles.slice(0, 10);
+        }
+    }
+
+    public clearRecentFiles(): void {
+        this._recentFiles = [];
+    }
+
     // ISettings implementation
     public serialize(): any {
         return {
@@ -62,7 +88,8 @@ export class ObjectBuilderSettings implements ISettings {
             windowY: this.windowY,
             windowWidth: this.windowWidth,
             windowHeight: this.windowHeight,
-            defaultDurations: Object.fromEntries(this._defaultDurations)
+            defaultDurations: Object.fromEntries(this._defaultDurations),
+            recentFiles: this._recentFiles
         };
     }
 
@@ -101,6 +128,9 @@ export class ObjectBuilderSettings implements ISettings {
             }
             if (data.defaultDurations !== undefined) {
                 this._defaultDurations = new Map(Object.entries(data.defaultDurations));
+            }
+            if (data.recentFiles !== undefined && Array.isArray(data.recentFiles)) {
+                this._recentFiles = data.recentFiles;
             }
 
             return true;

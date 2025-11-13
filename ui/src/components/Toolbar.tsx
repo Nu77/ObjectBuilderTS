@@ -54,13 +54,18 @@ export const Toolbar: React.FC = () => {
 
   // Listen for menu actions
   useEffect(() => {
-    const handleMenuAction = (action: string) => {
+    const handleMenuAction = (action: string, data?: any) => {
       switch (action) {
         case 'file-new':
           handleNew();
           break;
         case 'file-open':
           handleOpen();
+          break;
+        case 'file-open-recent':
+          if (data && data.datFile && data.sprFile) {
+            handleOpenRecent(data.datFile, data.sprFile);
+          }
           break;
         case 'file-compile':
           handleCompile();
@@ -73,9 +78,24 @@ export const Toolbar: React.FC = () => {
     // Listen for menu actions via window.electronAPI
     if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.onMenuAction) {
       window.electronAPI.onMenuAction(handleMenuAction);
+      
+      // Also listen for menu action data
+      const handleMenuActionData = (data: any) => {
+        if (data && data.action) {
+          handleMenuAction(data.action, data);
+        }
+      };
+      
+      if (window.electronAPI.onMenuActionData) {
+        window.electronAPI.onMenuActionData(handleMenuActionData);
+      }
+      
       return () => {
         if (window.electronAPI && window.electronAPI.removeMenuActionListener) {
           window.electronAPI.removeMenuActionListener();
+        }
+        if (window.electronAPI && window.electronAPI.removeMenuActionDataListener) {
+          window.electronAPI.removeMenuActionDataListener();
         }
       };
     }
@@ -116,6 +136,12 @@ export const Toolbar: React.FC = () => {
       showError(error.message || 'Failed to create new project');
       console.error('Failed to create new project:', error);
     }
+  };
+
+  const handleOpenRecent = async (datFile: string, sprFile: string) => {
+    setSelectedDatFile(datFile);
+    setSelectedSprFile(sprFile);
+    setLoadDialogOpen(true);
   };
 
   const handleOpen = async () => {
@@ -296,8 +322,17 @@ export const Toolbar: React.FC = () => {
           : 'Project loaded successfully';
         showSuccess(successMsg);
         setLoadDialogOpen(false);
-        setSelectedDatFile(undefined);
-        setSelectedSprFile(undefined);
+        // Keep files selected for potential reload, but clear after a delay
+        setTimeout(() => {
+          setSelectedDatFile(undefined);
+          setSelectedSprFile(undefined);
+        }, 100);
+        
+        // Update recent files menu in Electron
+        const electronAPI = (window as any).electronAPI;
+        if (electronAPI && electronAPI.updateRecentFilesMenu) {
+          electronAPI.updateRecentFilesMenu();
+        }
       } else {
         const errorMsg = loadResult.error || 'Failed to load project';
         // Provide more specific error messages

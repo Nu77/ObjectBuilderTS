@@ -26,12 +26,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeMenuActionListener: () => {
     ipcRenderer.removeAllListeners('menu-action');
   },
+  // Menu action data
+  onMenuActionData: (callback: (data: any) => void) => {
+    ipcRenderer.on('menu-action-data', (event, data) => callback(data));
+  },
+  removeMenuActionDataListener: () => {
+    ipcRenderer.removeAllListeners('menu-action-data');
+  },
   // Load OBD file for viewing
   loadOBDFile: (filePath: string) => ipcRenderer.invoke('loadOBDFile', filePath),
   // Get sprite dimensions list
   getSpriteDimensions: () => ipcRenderer.invoke('getSpriteDimensions'),
   // Write temporary file (for Slicer)
   writeTempFile: (fileName: string, data: ArrayBuffer) => ipcRenderer.invoke('writeTempFile', fileName, data),
+  // Update recent files menu
+  updateRecentFilesMenu: () => ipcRenderer.invoke('updateRecentFilesMenu'),
   // Find corresponding file (e.g., .dat for .spr)
   findCorrespondingFile: (filePath: string, targetExt: string) => ipcRenderer.invoke('file:findCorresponding', filePath, targetExt),
 });

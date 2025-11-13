@@ -450,6 +450,14 @@ export class ObjectBuilderWorker extends EventEmitter {
         this._improvedAnimations = (improvedAnimations || this._version.value >= 1050);
         this._frameGroups = (frameGroups || this._version.value >= 1057);
 
+        // Add to recent files
+        if (this._settings) {
+            this._settings.addRecentFile(datFile, sprFile);
+            // Save settings to persist recent files
+            const SettingsManager = require("../../otlib/settings/SettingsManager").SettingsManager;
+            SettingsManager.getInstance().saveSettings(this._settings);
+        }
+
         this.createStorage();
 
         // Load things and sprites

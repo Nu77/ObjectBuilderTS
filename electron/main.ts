@@ -3,7 +3,7 @@
 *  Handles window creation and IPC communication with backend
 */
 
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { ObjectBuilderApp } from '../src/main';
@@ -666,6 +666,12 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Update recent files menu (called from UI after loading files)
+  ipcMain.handle('updateRecentFilesMenu', async () => {
+    updateRecentFilesMenu();
+    return { success: true };
+  });
+
   // Write temporary file (for Slicer sprite import)
   ipcMain.handle('writeTempFile', async (event, fileName: string, data: ArrayBuffer) => {
     try {
@@ -900,13 +906,16 @@ app.whenReady().then(async () => {
   setupIpcHandlers();
   
   // Create window and menu FIRST so UI appears immediately
-  // Backend initialization can happen in the background
+      // Backend initialization can happen in the background
   createWindow();
   createMenu();
   
   // Then initialize backend asynchronously (don't await - let it happen in background)
   // This prevents blocking the UI from appearing
-  initializeBackend().catch((error) => {
+  initializeBackend().then(() => {
+    // Update recent files menu after backend is initialized
+    updateRecentFilesMenu();
+  }).catch((error) => {
     console.error('Backend initialization error:', error);
     // Window is already created, so user can see the error if needed
   });
@@ -940,6 +949,16 @@ function createMenu(): void {
               mainWindow.webContents.send('menu-action', 'file-open');
             }
           },
+        },
+        {
+          label: 'Recent Files',
+          id: 'recent-files',
+          submenu: [
+            {
+              label: 'No recent files',
+              enabled: false,
+            },
+          ],
         },
         { type: 'separator' },
         {
@@ -1156,6 +1175,79 @@ function createMenu(): void {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+  
+  // Update recent files menu when settings are available
+  updateRecentFilesMenu();
+}
+
+function updateRecentFilesMenu(): void {
+  try {
+    if (!backendApp || !(backendApp as any).settings) {
+      // Backend not initialized yet, try again later
+      setTimeout(updateRecentFilesMenu, 1000);
+      return;
+    }
+
+    const settings = (backendApp as any).settings;
+    const recentFiles = settings.getRecentFiles ? settings.getRecentFiles() : [];
+    const menu = Menu.getApplicationMenu();
+    if (!menu) return;
+
+    const fileMenu = menu.items.find(item => item.label === 'File');
+    if (!fileMenu || !fileMenu.submenu) return;
+
+    const recentFilesItem = (fileMenu.submenu as any).items.find((item: any) => item.id === 'recent-files');
+    if (!recentFilesItem) return;
+
+    if (recentFiles.length === 0) {
+      (recentFilesItem.submenu as any).clear();
+      (recentFilesItem.submenu as any).append(new MenuItem({
+        label: 'No recent files',
+        enabled: false,
+      }));
+    } else {
+      (recentFilesItem.submenu as any).clear();
+      recentFiles.forEach((file: { datFile: string; sprFile: string; timestamp: number }, index: number) => {
+        const path = require('path');
+        const datName = path.basename(file.datFile);
+        const sprName = path.basename(file.sprFile);
+        const label = index < 9 ? `&${index + 1} ${datName} / ${sprName}` : `${index + 1} ${datName} / ${sprName}`;
+        
+        (recentFilesItem.submenu as any).append(new MenuItem({
+          label: label,
+          click: () => {
+            if (mainWindow) {
+              // Send action first
+              mainWindow.webContents.send('menu-action', 'file-open-recent');
+              // Then send data
+              mainWindow.webContents.send('menu-action-data', {
+                action: 'file-open-recent',
+                datFile: file.datFile,
+                sprFile: file.sprFile,
+              });
+            }
+          },
+        }));
+      });
+      (recentFilesItem.submenu as any).append(new MenuItem({ type: 'separator' }));
+      (recentFilesItem.submenu as any).append(new MenuItem({
+        label: 'Clear Recent Files',
+        click: () => {
+          if (backendApp && (backendApp as any).settings) {
+            const settings = (backendApp as any).settings;
+            if (settings.clearRecentFiles) {
+              settings.clearRecentFiles();
+              const SettingsManager = require(path.join(__dirname, '../../otlib/settings/SettingsManager')).SettingsManager;
+              SettingsManager.getInstance().saveSettings(settings);
+              updateRecentFilesMenu();
+            }
+          }
+        },
+      }));
+    }
+  } catch (error) {
+    console.error('Error updating recent files menu:', error);
+  }
 }
 
 app.on('window-all-closed', () => {
