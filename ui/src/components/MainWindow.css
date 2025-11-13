@@ -1,0 +1,20 @@
+.main-window {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.main-editor-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+

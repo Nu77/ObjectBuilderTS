@@ -1,0 +1,81 @@
+.compile-options-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.compile-options-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.compile-options-section h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.radio-label input[type="radio"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}
+
+.radio-label span {
+  user-select: none;
+}
+
+.compile-file-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compile-file-field label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.file-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.file-path-input {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.file-path-input:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.file-path-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+

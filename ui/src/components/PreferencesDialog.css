@@ -1,0 +1,59 @@
+.preferences-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.preferences-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.preferences-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.preferences-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.preferences-field label {
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.preferences-field input[type="number"] {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  border-radius: 3px;
+  width: 150px;
+}
+
+.preferences-field.checkbox-field label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.preferences-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+

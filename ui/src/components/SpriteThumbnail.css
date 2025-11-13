@@ -1,0 +1,15 @@
+.sprite-thumbnail {
+  display: inline-block;
+  position: relative;
+  background-color: #636363;
+  border: 1px solid #272727;
+  box-sizing: border-box;
+}
+
+.sprite-thumbnail-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+

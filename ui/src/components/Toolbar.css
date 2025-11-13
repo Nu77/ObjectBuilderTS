@@ -1,0 +1,58 @@
+.toolbar {
+  height: 35px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 5px;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  margin: 0 5px;
+}
+
+.toolbar-button {
+  height: 28px;
+  padding: 0 12px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 11px;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.toolbar-button:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.toolbar-button:active {
+  background-color: var(--bg-primary);
+}
+
+.toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-button.active {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.toolbar-button.active:hover {
+  background-color: var(--accent-hover);
+}
+

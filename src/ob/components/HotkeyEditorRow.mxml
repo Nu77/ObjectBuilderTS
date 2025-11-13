@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup xmlns:fx="http://ns.adobe.com/mxml/2009"
+         xmlns:s="library://ns.adobe.com/flex/spark"
+         xmlns:controls="ob.components.controls.*"
+         width="100%"
+         verticalAlign="middle"
+         gap="10"
+         creationComplete="creationCompleteHandler(event)">
+    <fx:Metadata>
+        [ResourceBundle("strings")]
+    </fx:Metadata>
+
+    <fx:Script>
+        <![CDATA[
+            import flash.events.Event;
+            import flash.events.MouseEvent;
+
+            import mx.events.FlexEvent;
+            import ob.events.HotkeyManagerEvent;
+            import ob.hotkeys.HotkeyDefinition;
+            import ob.hotkeys.HotkeyManager;
+
+            [Bindable]
+            public var definition:HotkeyDefinition;
+
+            public var hotkeyManager:HotkeyManager;
+
+            protected function creationCompleteHandler(event:FlexEvent):void
+            {
+                if (hotkeyManager)
+                    hotkeyManager.addEventListener(HotkeyManagerEvent.HOTKEY_CHANGED, hotkeyChangedHandler, false, 0, true);
+
+                updateDisplay();
+            }
+
+            protected function inputChangeHandler(event:Event):void
+            {
+                if (!definition || !hotkeyManager)
+                    return;
+
+                hotkeyManager.updateHotkey(definition.id, hotkeyInput.hotkey);
+            }
+
+            protected function clearButtonClickHandler(event:MouseEvent):void
+            {
+                if (!definition || !hotkeyManager)
+                    return;
+
+                hotkeyManager.updateHotkey(definition.id, null);
+            }
+
+            protected function resetButtonClickHandler(event:MouseEvent):void
+            {
+                if (!definition || !hotkeyManager)
+                    return;
+
+                hotkeyManager.resetHotkey(definition.id);
+            }
+
+            protected function hotkeyChangedHandler(event:HotkeyManagerEvent):void
+            {
+                if (!definition || event.actionId != definition.id)
+                    return;
+
+                updateDisplay();
+            }
+
+            private function updateDisplay():void
+            {
+                if (!definition)
+                    return;
+
+                actionLabel.text = definition.label;
+                hotkeyInput.hotkey = definition.hotkey;
+                clearButton.enabled = definition.hotkey != null;
+                resetButton.enabled = definition.defaultHotkey != null && !definition.usesDefault();
+            }
+        ]]>
+    </fx:Script>
+
+    <s:Label id="actionLabel" width="100%" maxDisplayedLines="1"/>
+    <controls:HotkeyInput id="hotkeyInput"
+                          width="160"
+                          change="inputChangeHandler(event)"/>
+    <s:Button id="clearButton"
+              minWidth="60"
+              label="@Resource(key='clear', bundle='strings')"
+              click="clearButtonClickHandler(event)"/>
+    <s:Button id="resetButton"
+              minWidth="60"
+              label="@Resource(key='reset', bundle='strings')"
+              click="resetButtonClickHandler(event)"/>
+</s:HGroup>

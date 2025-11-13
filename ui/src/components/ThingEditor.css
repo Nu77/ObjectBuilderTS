@@ -1,0 +1,118 @@
+.thing-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.editor-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.save-button {
+  padding: 6px 12px;
+  background-color: var(--accent-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover {
+  background-color: var(--accent-hover);
+}
+
+.editor-content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.editor-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.editor-section:last-child {
+  border-bottom: none;
+}
+
+.editor-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.form-group {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-group label {
+  min-width: 120px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.form-group input[type="text"]:disabled,
+.form-group input[type="number"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  min-width: auto;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.placeholder-text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+  padding: 40px 20px;
+}

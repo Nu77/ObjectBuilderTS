@@ -1,0 +1,122 @@
+/*
+*  Copyright (c) 2014-2023 Object Builder <https://github.com/ottools/ObjectBuilder>
+*
+*  Permission is hereby granted, free of charge, to any person obtaining a copy
+*  of this software and associated documentation files (the "Software"), to deal
+*  in the Software without restriction, including without limitation the rights
+*  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+*  copies of the Software, and to permit persons to whom the Software is
+*  furnished to do so, subject to the following conditions:
+*
+*  The above copyright notice and this permission notice shall be included in
+*  all copies or substantial portions of the Software.
+*
+*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+*  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+*  THE SOFTWARE.
+*/
+
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { ISettingsManager } from "./ISettingsManager";
+import { ISettings } from "./ISettings";
+
+/**
+ * SettingsManager - Manages loading and saving of settings files
+ * 
+ * Note: Currently uses JSON format for simplicity. Full OTML support can be
+ * added later by implementing OTMLDocument parsing/emitting.
+ */
+export class SettingsManager implements ISettingsManager {
+    private static _instance: ISettingsManager | null = null;
+    private _directory: string;
+
+    constructor() {
+        if (SettingsManager._instance) {
+            throw new Error("SettingsManager is a singleton class");
+        }
+
+        SettingsManager._instance = this;
+
+        // Use OS-specific app data directory
+        const appDataDir = os.homedir();
+        const settingsDir = path.join(appDataDir, ".objectbuilder", "settings");
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(settingsDir)) {
+            fs.mkdirSync(settingsDir, { recursive: true });
+        }
+
+        this._directory = settingsDir;
+    }
+
+    public loadSettings(settings: ISettings): boolean {
+        if (!settings) {
+            throw new Error("settings cannot be null");
+        }
+
+        const type = settings.settingsClassType;
+        const filePath = path.join(this._directory, `${type}.otcfg`);
+
+        if (!fs.existsSync(filePath)) {
+            return false;
+        }
+
+        try {
+            // Try JSON format first (new format)
+            const content = fs.readFileSync(filePath, "utf8");
+            let data: any;
+
+            // Check if it's JSON or OTML
+            if (content.trim().startsWith("{")) {
+                data = JSON.parse(content);
+            } else {
+                // TODO: Parse OTML format
+                // For now, return false if it's not JSON
+                console.warn("OTML format not yet fully supported, skipping:", filePath);
+                return false;
+            }
+
+            return settings.unserialize(data);
+        } catch (error: any) {
+            console.error(`Failed to load settings from ${filePath}:`, error);
+            return false;
+        }
+    }
+
+    public saveSettings(settings: ISettings): boolean {
+        if (!settings) {
+            throw new Error("settings cannot be null");
+        }
+
+        const type = settings.settingsClassType;
+        const filePath = path.join(this._directory, `${type}.otcfg`);
+
+        try {
+            // Serialize settings to plain object
+            const data = settings.serialize();
+
+            // Save as JSON (can be enhanced to support OTML later)
+            const json = JSON.stringify(data, null, 2);
+            fs.writeFileSync(filePath, json, "utf8");
+
+            return true;
+        } catch (error: any) {
+            console.error(`Failed to save settings to ${filePath}:`, error);
+            return false;
+        }
+    }
+
+    public static getInstance(): ISettingsManager {
+        if (!SettingsManager._instance) {
+            new SettingsManager();
+        }
+        return SettingsManager._instance!;
+    }
+}
+
