@@ -22,6 +22,7 @@ import { Slicer } from './Slicer';
 import { SpritesOptimizerWindow } from './SpritesOptimizerWindow';
 import { FrameDurationsOptimizerWindow } from './FrameDurationsOptimizerWindow';
 import { FrameGroupsConverterWindow } from './FrameGroupsConverterWindow';
+import { ClientVersionsWindow } from './ClientVersionsWindow';
 import { Button } from './Button';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { ProgressProvider } from '../contexts/ProgressContext';
@@ -53,6 +54,7 @@ const MainWindowContent: React.FC = () => {
   const [showSpritesOptimizer, setShowSpritesOptimizer] = useState(false);
   const [showFrameDurationsOptimizer, setShowFrameDurationsOptimizer] = useState(false);
   const [showFrameGroupsConverter, setShowFrameGroupsConverter] = useState(false);
+  const [showClientVersions, setShowClientVersions] = useState(false);
   const [exportType, setExportType] = useState<'things' | 'sprites'>('things');
   const windowRef = useRef<HTMLDivElement>(null);
 
@@ -137,6 +139,9 @@ const MainWindowContent: React.FC = () => {
           break;
         case 'tools-frame-groups-converter':
           setShowFrameGroupsConverter(true);
+          break;
+        case 'tools-client-versions':
+          setShowClientVersions(true);
           break;
         case 'file-import':
           setShowImportDialog(true);
@@ -405,6 +410,11 @@ const MainWindowContent: React.FC = () => {
         open={showFrameGroupsConverter}
         onClose={() => setShowFrameGroupsConverter(false)}
       />
+      {showClientVersions && (
+        <ClientVersionsWindow
+          onClose={() => setShowClientVersions(false)}
+        />
+      )}
     </>
   );
 };

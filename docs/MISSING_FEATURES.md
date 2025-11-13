@@ -12,12 +12,12 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 ## 🎨 Windows & Dialogs
 
 ### Core Windows
-- 🟡 **Animation Editor** (`AnimationEditor`) - Basic implementation, save functionality pending
+- 🟡 **Animation Editor** (`AnimationEditor`) - Basic implementation, save imports sprites (ThingData creation pending)
 - ✅ **Object Viewer** (`ObjectViewer`) - Standalone window to view .obd files
 - ✅ **Slicer** (`Slicer`) - Tool to slice sprite sheets into individual sprites
 - ❌ **Asset Store** (`AssetStore`) - Browse and import assets from online store
 - ❌ **Look Generator** (`LookGenerator`) - Generate character looks/outfits
-- ❌ **Client Versions Window** (`ClientVersionsWindow`) - Manage client version definitions
+- ✅ **Client Versions Window** (`ClientVersionsWindow`) - Manage client version definitions
 - ❌ **Import Thing Window** (`ImportThingWindow`) - Advanced import dialog with preview
 - ✅ **Files Info Panel** (`FilesInfoPanel`) - Display file information and statistics
 
@@ -363,5 +363,6 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 - ✅ Implemented Recent Files List (up to 10 files in File menu)
 - ✅ Implemented Import from Clipboard (paste sprites/images)
 - ✅ Implemented Advanced Preview features (background color picker, grid overlay, zoom controls, animation controls)
-- 🟡 Animation Editor basic implementation (save functionality pending)
+- 🟡 Animation Editor basic implementation (save imports sprites, ThingData creation pending)
+- ✅ Implemented Client Versions Window (manage version definitions)
 

@@ -43,5 +43,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateRecentFilesMenu: () => ipcRenderer.invoke('updateRecentFilesMenu'),
   // Find corresponding file (e.g., .dat for .spr)
   findCorrespondingFile: (filePath: string, targetExt: string) => ipcRenderer.invoke('file:findCorresponding', filePath, targetExt),
+  // Client Versions
+  getVersions: () => ipcRenderer.invoke('getVersions'),
+  addVersion: (value: number, datSignature: number, sprSignature: number, otbVersion: number) => ipcRenderer.invoke('addVersion', value, datSignature, sprSignature, otbVersion),
+  removeVersion: (valueStr: string) => ipcRenderer.invoke('removeVersion', valueStr),
 });
 

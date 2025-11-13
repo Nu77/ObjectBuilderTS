@@ -739,6 +739,98 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Client Versions IPC handlers
+  ipcMain.handle('getVersions', async () => {
+    try {
+      if (!backendApp) {
+        return { success: false, error: 'Backend not initialized' };
+      }
+
+      const VersionStorage = require(path.join(__dirname, '../../otlib/core/VersionStorage')).VersionStorage;
+      const versionStorage = VersionStorage.getInstance();
+      
+      if (!versionStorage.loaded) {
+        // Try to load from default location
+        const versionsPath = path.join(__dirname, '../../firstRun/versions.xml');
+        versionStorage.load(versionsPath);
+      }
+
+      const versions = versionStorage.getList();
+      return {
+        success: true,
+        versions: versions.map((v: any) => ({
+          value: v.value,
+          valueStr: v.valueStr,
+          datSignature: v.datSignature,
+          sprSignature: v.sprSignature,
+          otbVersion: v.otbVersion,
+        })),
+      };
+    } catch (error: any) {
+      console.error('Error getting versions:', error);
+      return { success: false, error: error.message || 'Failed to get versions' };
+    }
+  });
+
+  ipcMain.handle('addVersion', async (event, value: number, datSignature: number, sprSignature: number, otbVersion: number) => {
+    try {
+      if (!backendApp) {
+        return { success: false, error: 'Backend not initialized' };
+      }
+
+      const VersionStorage = require(path.join(__dirname, '../../otlib/core/VersionStorage')).VersionStorage;
+      const versionStorage = VersionStorage.getInstance();
+      
+      if (!versionStorage.loaded) {
+        const versionsPath = path.join(__dirname, '../../firstRun/versions.xml');
+        versionStorage.load(versionsPath);
+      }
+
+      versionStorage.addVersion(value, datSignature, sprSignature, otbVersion);
+      
+      // Save versions
+      const versionsPath = path.join(__dirname, '../../firstRun/versions.xml');
+      versionStorage.save(versionsPath);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error adding version:', error);
+      return { success: false, error: error.message || 'Failed to add version' };
+    }
+  });
+
+  ipcMain.handle('removeVersion', async (event, valueStr: string) => {
+    try {
+      if (!backendApp) {
+        return { success: false, error: 'Backend not initialized' };
+      }
+
+      const VersionStorage = require(path.join(__dirname, '../../otlib/core/VersionStorage')).VersionStorage;
+      const versionStorage = VersionStorage.getInstance();
+      
+      if (!versionStorage.loaded) {
+        const versionsPath = path.join(__dirname, '../../firstRun/versions.xml');
+        versionStorage.load(versionsPath);
+      }
+
+      const version = versionStorage.getByValueString(valueStr);
+      if (!version) {
+        return { success: false, error: 'Version not found' };
+      }
+
+      versionStorage.removeVersion(version);
+      
+      // Save versions
+      const versionsPath = path.join(__dirname, '../../firstRun/versions.xml');
+      versionStorage.save(versionsPath);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error removing version:', error);
+      return { success: false, error: error.message || 'Failed to remove version' };
+    }
+  });
+
   // Check if file exists and find corresponding file (for auto-loading .dat/.spr pairs)
   ipcMain.handle('file:findCorresponding', async (event, filePath: string, targetExt: string) => {
     try {
@@ -1139,6 +1231,15 @@ function createMenu(): void {
           click: () => {
             if (mainWindow) {
               mainWindow.webContents.send('menu-action', 'tools-frame-groups-converter');
+            }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Client Versions',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'tools-client-versions');
             }
           },
         },
