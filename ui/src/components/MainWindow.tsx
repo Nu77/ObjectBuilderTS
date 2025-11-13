@@ -15,6 +15,7 @@ import { ImportDialog } from './ImportDialog';
 import { ExportDialog } from './ExportDialog';
 import { MergeFilesDialog } from './MergeFilesDialog';
 import { LogWindow } from './LogWindow';
+import { FileInfoPanel } from './FileInfoPanel';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { ProgressProvider } from '../contexts/ProgressContext';
 import { CommandFactory } from '../services/CommandFactory';
@@ -35,6 +36,7 @@ const MainWindowContent: React.FC = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [showLogWindow, setShowLogWindow] = useState(false);
+  const [showFileInfoPanel, setShowFileInfoPanel] = useState(true);
   const [exportType, setExportType] = useState<'things' | 'sprites'>('things');
 
   // Listen for menu actions
@@ -77,6 +79,9 @@ const MainWindowContent: React.FC = () => {
         case 'window-log':
           setShowLogWindow(true);
           break;
+        case 'view-file-info':
+          setShowFileInfoPanel(prev => !prev);
+          break;
         default:
           break;
       }
@@ -98,11 +103,18 @@ const MainWindowContent: React.FC = () => {
       <div className="main-window">
         <Toolbar />
         <div className="main-content">
-          {showPreviewPanel && (
-            <PreviewPanel
-              onClose={() => setShowPreviewPanel(false)}
-            />
-          )}
+          <div className="main-left-sidebar">
+            {showPreviewPanel && (
+              <PreviewPanel
+                onClose={() => setShowPreviewPanel(false)}
+              />
+            )}
+            {showFileInfoPanel && (
+              <FileInfoPanel
+                onClose={() => setShowFileInfoPanel(false)}
+              />
+            )}
+          </div>
           <div className="main-editor-area">
             {showThingsPanel && (
               <ThingsPanel
@@ -151,12 +163,13 @@ const MainWindowContent: React.FC = () => {
                 showError(result.error || 'Failed to import things');
               }
             } else {
-              // Import sprites from image files
+              // Import sprites from image files or SPR files
               const command = CommandFactory.createImportSpritesFromFilesCommand(options.files);
               const result = await worker.sendCommand(command);
               hideProgress();
               if (result.success) {
-                showSuccess(`Successfully imported ${options.files.length} sprite file(s)`);
+                const fileType = options.type === 'sprites-spr' ? 'SPR file(s)' : 'sprite file(s)';
+                showSuccess(`Successfully imported ${options.files.length} ${fileType}`);
               } else {
                 showError(result.error || 'Failed to import sprites');
               }

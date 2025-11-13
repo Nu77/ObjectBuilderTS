@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWorker } from '../contexts/WorkerContext';
 import { useAppStateContext } from '../contexts/AppStateContext';
 import { CommandFactory } from '../services/CommandFactory';
@@ -131,41 +131,100 @@ export const SpriteList: React.FC = () => {
     setSelectedSpriteIds([id]);
   };
 
+  // Keyboard navigation (only when list container is focused)
+  const listRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const listElement = listRef.current;
+    if (!listElement) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if list is focused or contains focused element
+      if (!listElement.contains(document.activeElement)) return;
+      if (sprites.length === 0) return;
+      
+      const selectedIndex = sprites.findIndex(s => selectedSpriteIds.includes(s.id));
+      if (selectedIndex < 0 && sprites.length > 0) {
+        // No selection, select first item
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          handleSpriteClick(sprites[0].id);
+        }
+        return;
+      }
+
+      let newIndex = selectedIndex;
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (e.key === 'ArrowDown') {
+          newIndex = Math.min(selectedIndex + 1, sprites.length - 1);
+        } else {
+          newIndex = Math.max(selectedIndex - 1, 0);
+        }
+        
+        if (newIndex >= 0 && newIndex < sprites.length) {
+          const sprite = sprites[newIndex];
+          handleSpriteClick(sprite.id);
+          // Scroll into view
+          setTimeout(() => {
+            const element = document.querySelector(`[data-sprite-id="${sprite.id}"]`);
+            element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 0);
+        }
+      }
+    };
+
+    listElement.addEventListener('keydown', handleKeyDown);
+    return () => listElement.removeEventListener('keydown', handleKeyDown);
+  }, [sprites, selectedSpriteIds]);
+
   if (loading) {
     return (
       <div className="sprite-list-loading">
-        <p>Loading...</p>
+        <div className="loading-spinner"></div>
+        <p>Loading sprites...</p>
       </div>
     );
   }
 
   return (
-    <div className="sprite-list">
+    <div className="sprite-list" ref={listRef} tabIndex={0}>
       {sprites.length === 0 ? (
         <div className="sprite-list-empty">
           <p>No sprites found</p>
+          <p className="sprite-list-empty-hint">
+            Select a thing to view its sprites
+          </p>
         </div>
       ) : (
-        <div className="sprite-list-items">
+        <>
+          <div className="sprite-list-header">
+            <span className="sprite-list-count">{sprites.length} sprite{sprites.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="sprite-list-items">
           {sprites.map((sprite) => (
             <div
               key={sprite.id}
+              data-sprite-id={sprite.id}
               className={`sprite-list-item ${
                 selectedSpriteIds.includes(sprite.id) ? 'selected' : ''
               }`}
               onClick={() => handleSpriteClick(sprite.id)}
+              title={`Sprite #${sprite.id}`}
             >
-              <div className="sprite-list-item-preview">
-                {sprite.pixels ? (
-                  <SpriteThumbnail pixels={sprite.pixels} size={32} scale={2} />
-                ) : (
-                  <div className="sprite-list-item-placeholder">#{sprite.id}</div>
-                )}
+                <div className="sprite-list-item-preview">
+                  {sprite.pixels ? (
+                    <SpriteThumbnail pixels={sprite.pixels} size={32} scale={2} />
+                  ) : (
+                    <div className="sprite-list-item-placeholder">#{sprite.id}</div>
+                  )}
+                </div>
+                <div className="sprite-list-item-id">#{sprite.id}</div>
               </div>
-              <div className="sprite-list-item-id">#{sprite.id}</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

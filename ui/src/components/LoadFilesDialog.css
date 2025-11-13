@@ -41,6 +41,38 @@
   color: var(--text-primary);
   word-break: break-all;
   font-family: 'Courier New', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.file-path-valid {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.file-path-invalid {
+  border-color: var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.file-path-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-path-icon {
+  color: #4caf50;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.file-path-placeholder {
+  color: var(--text-tertiary);
+  font-style: italic;
 }
 
 .version-select {

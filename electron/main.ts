@@ -78,6 +78,10 @@ function createWindow(): void {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      // Disable WebGL to prevent GPU issues if not needed
+      // enableWebGL: false, // Uncomment if GPU issues persist
+      // Disable background throttling for better performance
+      backgroundThrottling: false,
     },
     show: false, // Don't show until ready
   });
@@ -109,8 +113,21 @@ function createWindow(): void {
     });
   }
 
+  // Show window when ready (simplified since hardware acceleration is disabled)
+  // With hardware acceleration disabled, GPU process won't crash, so we can use simpler timing
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+    }
+  });
+
+  // Fallback: show after page loads if ready-to-show didn't fire
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+    }, 50);
   });
 
   // Save window state on move/resize
@@ -498,6 +515,21 @@ async function initializeBackend(): Promise<void> {
   }
 }
 
+// Fix GPU process crashes on Windows
+// This prevents the blinking/flickering on startup
+if (process.platform === 'win32') {
+  // Disable GPU sandbox to prevent crashes
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
+  // Disable hardware acceleration entirely to prevent GPU process crashes
+  // This uses software rendering instead, which is more stable on Windows
+  app.disableHardwareAcceleration();
+}
+
+// Suppress GPU process error messages in console
+app.commandLine.appendSwitch('disable-gpu-process-crash-limit');
+// Additional flag to prevent GPU issues
+app.commandLine.appendSwitch('disable-gpu');
+
 app.whenReady().then(async () => {
   // Set up IPC handlers FIRST, before backend initialization
   // This ensures handlers are always available even if backend fails
@@ -635,6 +667,15 @@ function createMenu(): void {
           click: () => {
             if (mainWindow) {
               mainWindow.webContents.send('menu-action', 'view-sprites');
+            }
+          },
+        },
+        {
+          label: 'Toggle File Info Panel',
+          accelerator: 'F5',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'view-file-info');
             }
           },
         },

@@ -32,6 +32,7 @@ export const Toolbar: React.FC = () => {
   const [selectedSprFile, setSelectedSprFile] = useState<string | undefined>();
   const [clientChanged, setClientChanged] = useState(false);
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [clientInfo, setClientInfo] = useState<any>(null);
 
   // Listen for client info changes
   useEffect(() => {
@@ -39,6 +40,7 @@ export const Toolbar: React.FC = () => {
       if (command.type === 'SetClientInfoCommand' && command.data) {
         setClientLoaded(command.data.loaded || false);
         setClientChanged(command.data.changed || false);
+        setClientInfo(command.data);
       }
     };
 
@@ -116,18 +118,35 @@ export const Toolbar: React.FC = () => {
       const fileDialog = FileDialogService.getInstance();
       const result = await fileDialog.openDatSprFiles();
       
-      if (!result.canceled && result.filePaths && result.filePaths.length >= 2) {
+      if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
         // Find DAT and SPR files
         const datFile = result.filePaths.find(p => p.toLowerCase().endsWith('.dat'));
         const sprFile = result.filePaths.find(p => p.toLowerCase().endsWith('.spr'));
         
-        if (datFile && sprFile) {
-          setSelectedDatFile(datFile);
-          setSelectedSprFile(sprFile);
-          setLoadDialogOpen(true);
-        } else {
-          showError('Please select both DAT and SPR files');
+        if (!datFile) {
+          showError('Please select a DAT file (.dat)');
+          return;
         }
+        
+        if (!sprFile) {
+          showError('Please select a SPR file (.spr)');
+          return;
+        }
+        
+        // Validate file extensions
+        if (!datFile.toLowerCase().endsWith('.dat')) {
+          showError('Invalid DAT file. Please select a file with .dat extension');
+          return;
+        }
+        
+        if (!sprFile.toLowerCase().endsWith('.spr')) {
+          showError('Invalid SPR file. Please select a file with .spr extension');
+          return;
+        }
+        
+        setSelectedDatFile(datFile);
+        setSelectedSprFile(sprFile);
+        setLoadDialogOpen(true);
       }
     } catch (error: any) {
       showError(error.message || 'Failed to open project');
@@ -142,7 +161,10 @@ export const Toolbar: React.FC = () => {
     improvedAnimations: boolean;
     frameGroups: boolean;
   }) => {
-    if (!selectedDatFile || !selectedSprFile) return;
+    if (!selectedDatFile || !selectedSprFile) {
+      showError('Please select both DAT and SPR files');
+      return;
+    }
 
     try {
       showProgress('Loading project files...');
@@ -158,16 +180,50 @@ export const Toolbar: React.FC = () => {
       const loadResult = await worker.sendCommand(command);
       hideProgress();
       if (loadResult.success) {
-        showSuccess('Project loaded successfully');
+        // Get client info for success message (may not be available immediately)
+        const info = clientInfo || loadResult.data?.clientInfo;
+        const spriteCount = info?.spritesCount || info?.maxSpriteId || 0;
+        const thingCount = (info?.itemsCount || info?.maxItemId || 0) + 
+                          (info?.outfitsCount || info?.maxOutfitId || 0) + 
+                          (info?.effectsCount || info?.maxEffectId || 0) + 
+                          (info?.missilesCount || info?.maxMissileId || 0);
+        const successMsg = thingCount > 0 || spriteCount > 0
+          ? `Project loaded successfully - ${spriteCount} sprites, ${thingCount} things`
+          : 'Project loaded successfully';
+        showSuccess(successMsg);
         setLoadDialogOpen(false);
         setSelectedDatFile(undefined);
         setSelectedSprFile(undefined);
       } else {
-        showError(loadResult.error || 'Failed to load project');
+        const errorMsg = loadResult.error || 'Failed to load project';
+        // Provide more specific error messages
+        let detailedError = errorMsg;
+        if (errorMsg.includes('SPR') || errorMsg.includes('spr')) {
+          detailedError = `SPR file error: ${errorMsg}. Please check if the SPR file is valid and not corrupted.`;
+        } else if (errorMsg.includes('DAT') || errorMsg.includes('dat')) {
+          detailedError = `DAT file error: ${errorMsg}. Please check if the DAT file is valid and not corrupted.`;
+        }
+        showError(detailedError);
       }
     } catch (error: any) {
       hideProgress();
-      showError(error.message || 'Failed to load project');
+      const errorMessage = error.message || 'Failed to load project';
+      
+      // Provide helpful error messages
+      let detailedError = errorMessage;
+      if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
+        detailedError = 'File not found. Please check if the DAT and SPR files exist and are accessible.';
+      } else if (errorMessage.includes('permission')) {
+        detailedError = 'Permission denied. Please check file permissions.';
+      } else if (errorMessage.includes('corrupt') || errorMessage.includes('invalid')) {
+        detailedError = 'File appears to be corrupted or invalid. Please verify the files are valid Tibia client files.';
+      } else if (errorMessage.includes('SPR') || errorMessage.includes('spr')) {
+        detailedError = `SPR file error: ${errorMessage}. Please check if the SPR file is valid and not corrupted.`;
+      } else if (errorMessage.includes('DAT') || errorMessage.includes('dat')) {
+        detailedError = `DAT file error: ${errorMessage}. Please check if the DAT file is valid and not corrupted.`;
+      }
+      
+      showError(detailedError);
       console.error('Failed to load project:', error);
     }
   };

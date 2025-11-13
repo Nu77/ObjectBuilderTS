@@ -31,6 +31,8 @@ import { SpriteUtils } from "../utils/SpriteUtils";
 import { SpriteExtent } from "../utils/SpriteExtent";
 import { Resources } from "../resources/Resources";
 import { BitmapData } from "../utils/BitmapData";
+import { SpriteReader } from "../sprites/SpriteReader";
+import { Version } from "../core/Version";
 import sharp from "sharp";
 
 export class SpriteDataLoader extends EventEmitter {
@@ -38,9 +40,27 @@ export class SpriteDataLoader extends EventEmitter {
     private _files: PathHelper[] = [];
     private _index: number = -1;
     private _cancel: boolean = false;
+    private _version: Version | null = null;
+    private _extended: boolean = false;
+    private _transparency: boolean = false;
 
     public get spriteDataList(): SpriteData[] { return this._spriteDataList; }
     public get length(): number { return this._files ? this._files.length : 0; }
+
+    public setVersion(version: Version | null): void {
+        this._version = version;
+        if (version) {
+            this._extended = version.value >= 960;
+        }
+    }
+
+    public setExtended(extended: boolean): void {
+        this._extended = extended;
+    }
+
+    public setTransparency(transparency: boolean): void {
+        this._transparency = transparency;
+    }
 
     constructor() {
         super();
@@ -90,11 +110,14 @@ export class SpriteDataLoader extends EventEmitter {
         const filePath = this._files[this._index].nativePath;
         const ext = path.extname(filePath).toLowerCase().substring(1);
 
-        // Check if it's an image format
-        const imageFormats = ["png", "bmp", "jpg", "jpeg", "gif"];
-        if (imageFormats.includes(ext)) {
+        // Check if it's an SPR file
+        if (ext === "spr") {
+            await this.loadSprFile(filePath);
+        } else if (["png", "bmp", "jpg", "jpeg", "gif"].includes(ext)) {
+            // Check if it's an image format
             await this.loadImage(filePath, this._files[this._index].id);
         } else {
+            // Unknown format, skip
             this.loadNext();
         }
     }
@@ -133,6 +156,55 @@ export class SpriteDataLoader extends EventEmitter {
         } catch (error: any) {
             this._spriteDataList = [];
             this.emit("error", new Error(error.message || error));
+        }
+    }
+
+    private async loadSprFile(filePath: string): Promise<void> {
+        try {
+            // Determine extended and transparency from version or use defaults
+            const extended = this._extended || (this._version ? this._version.value >= 960 : false);
+            const transparency = this._transparency;
+
+            // Read SPR file using SpriteReader
+            const reader = SpriteReader.fromFile(filePath, extended, transparency);
+            
+            // Read sprite count
+            const spriteCount = reader.readSpriteCount();
+            
+            // Read all sprites from the SPR file
+            for (let spriteId = 1; spriteId <= spriteCount; spriteId++) {
+                if (this._cancel) {
+                    this._spriteDataList = [];
+                    this._files = [];
+                    this._index = -1;
+                    return;
+                }
+
+                const sprite = reader.readSprite(spriteId);
+                if (sprite && !sprite.isEmpty) {
+                    // Get pixels from sprite
+                    const pixels = sprite.getPixels();
+                    if (pixels && pixels.length > 0) {
+                        const spriteData = new SpriteData();
+                        spriteData.id = spriteId;
+                        spriteData.pixels = pixels.toBuffer();
+                        this._spriteDataList.push(spriteData);
+                    }
+                }
+
+                // Emit progress for each sprite
+                this.emit(ProgressEvent.PROGRESS, new ProgressEvent(
+                    ProgressEvent.PROGRESS,
+                    ProgressBarID.DEFAULT,
+                    spriteId,
+                    spriteCount
+                ));
+            }
+
+            this.loadNext();
+        } catch (error: any) {
+            this._spriteDataList = [];
+            this.emit("error", new Error(`Failed to load SPR file: ${error.message || error}`));
         }
     }
 }

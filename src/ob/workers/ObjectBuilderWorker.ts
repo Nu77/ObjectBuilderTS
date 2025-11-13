@@ -1329,6 +1329,14 @@ export class ObjectBuilderWorker extends EventEmitter {
         if (list.length === 0) return;
 
         const loader = new SpriteDataLoader();
+        
+        // Set version and settings for SPR file loading
+        if (this._version) {
+            loader.setVersion(this._version);
+        }
+        loader.setExtended(this._extended);
+        loader.setTransparency(this._transparency);
+        
         loader.on("progress", (event: ProgressEvent) => {
             this.sendCommand(new ProgressCommand(event.id, event.loaded, event.total, Resources.getString("loading")));
         });

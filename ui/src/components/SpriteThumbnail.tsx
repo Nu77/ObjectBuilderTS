@@ -67,14 +67,20 @@ export const SpriteThumbnail: React.FC<SpriteThumbnailProps> = ({
       // Sprites are typically 32x32 = 1024 pixels = 4096 bytes (RGBA)
       const expectedLength = size * size * 4;
       const pixelLength = Math.min(pixelData.length, expectedLength);
+      const pixelCount = size * size;
 
-      for (let i = 0; i < pixelLength; i += 4) {
-        const idx = i;
-        if (idx < data.length) {
-          data[idx] = pixelData[i] || 0;         // R
-          data[idx + 1] = pixelData[i + 1] || 0; // G
-          data[idx + 2] = pixelData[i + 2] || 0; // B
-          data[idx + 3] = pixelData[i + 3] !== undefined ? pixelData[i + 3] : 255; // A
+      // Copy pixel data row by row (sprites are stored top-to-bottom)
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const pixelIndex = (y * size + x) * 4;
+          const dataIndex = (y * size + x) * 4;
+          
+          if (pixelIndex + 3 < pixelLength && dataIndex + 3 < data.length) {
+            data[dataIndex] = pixelData[pixelIndex] || 0;         // R
+            data[dataIndex + 1] = pixelData[pixelIndex + 1] || 0; // G
+            data[dataIndex + 2] = pixelData[pixelIndex + 2] || 0; // B
+            data[dataIndex + 3] = pixelData[pixelIndex + 3] !== undefined ? pixelData[pixelIndex + 3] : 255; // A
+          }
         }
       }
 

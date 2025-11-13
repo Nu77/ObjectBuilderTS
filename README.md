@@ -51,6 +51,8 @@ npm run dev:electron
 
 ```
 ironcore-object-builder/
+├── actionscript-blueprint/ # ⚠️ ORIGINAL ACTIONSCRIPT CODE (Reference Only)
+│   └── README.md          # See this folder's README for details
 ├── src/                    # Backend TypeScript code
 │   ├── main.ts            # Application entry point
 │   ├── cli.ts             # CLI interface
@@ -76,6 +78,16 @@ ironcore-object-builder/
 │       └── hooks/        # Custom hooks
 └── dist/                  # Build output
 ```
+
+### ⚠️ ActionScript Blueprint
+
+The `actionscript-blueprint/` folder contains the original ActionScript source code from the Adobe AIR version. **This folder serves as a reference blueprint** for the TypeScript conversion and should be used when:
+
+- Implementing new features or fixing bugs
+- Understanding the original architecture
+- Ensuring feature parity
+
+**See [`actionscript-blueprint/README.md`](./actionscript-blueprint/README.md) for more details.**
 
 ## 🎯 Features
 

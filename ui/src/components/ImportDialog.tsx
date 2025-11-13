@@ -4,7 +4,7 @@ import { Button } from './Button';
 import { FileDialogService } from '../services/FileDialogService';
 import './ImportDialog.css';
 
-type ImportType = 'things' | 'sprites';
+type ImportType = 'things' | 'sprites' | 'sprites-spr';
 
 interface ImportDialogProps {
   open: boolean;
@@ -32,6 +32,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
       
       if (type === 'things') {
         result = await fileDialog.openOBDFile();
+      } else if (type === 'sprites-spr') {
+        result = await fileDialog.openSprFiles();
       } else {
         result = await fileDialog.openImageFiles();
       }
@@ -109,6 +111,19 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
               />
               <span>Sprites (Image files)</span>
             </label>
+            <label className="radio-label">
+              <input
+                type="radio"
+                name="importType"
+                value="sprites-spr"
+                checked={type === 'sprites-spr'}
+                onChange={(e) => {
+                  setType(e.target.value as ImportType);
+                  setSelectedFiles([]);
+                }}
+              />
+              <span>Sprites (SPR files)</span>
+            </label>
           </div>
         </div>
 
@@ -150,6 +165,11 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                 <>
                   Select one or more .obd files to import things into the current project.
                   Each file should contain thing data in Object Builder format.
+                </>
+              ) : type === 'sprites-spr' ? (
+                <>
+                  Select one or more .spr files to import sprites into the current project.
+                  SPR files contain sprite data in Tibia client format. The current project's version settings will be used to read the SPR files.
                 </>
               ) : (
                 <>

@@ -35,6 +35,20 @@
 - Added more command types to the command map (Import, Export, Merge)
 - Improved error handling for command loading
 
+### 5. GPU Process Crashes and Window Blinking ✅
+**Problem**: GPU process was crashing on Windows startup, causing the window to blink/flicker. Error code: -1073740791 (STATUS_STACK_BUFFER_OVERRUN). Also seeing vector index out of bounds assertions in Chromium.
+
+**Solution**:
+- **Disabled hardware acceleration entirely on Windows** - Uses software rendering instead, which is more stable
+- Added `disable-gpu-sandbox` command line switch for Windows to prevent GPU sandbox crashes
+- Added `disable-gpu` and `disable-software-rasterizer` flags for additional stability
+- Added `disable-gpu-process-crash-limit` to prevent repeated GPU process restarts
+- Simplified window show timing since GPU process is no longer used
+- Added `backgroundThrottling: false` to webPreferences for better performance
+- Window now shows smoothly without flicker
+
+**Note**: Disabling hardware acceleration uses software rendering, which may have slightly lower performance but is much more stable on Windows systems with GPU driver issues.
+
 ## Next Steps
 
 ### To Fix Canvas Module Error:
@@ -61,6 +75,7 @@ npm run start:electron
 - ✅ IPC handlers registered and working
 - ✅ File dialogs working
 - ✅ Backend initialization error handling improved
+- ✅ GPU process crashes fixed (no more blinking on startup)
 - ⚠️ Canvas module needs rebuild (run `npm run rebuild`)
 - ✅ All UI components functional
 - ✅ Command routing working

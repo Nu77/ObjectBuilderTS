@@ -10,7 +10,7 @@
     "build:electron": "tsc -p electron/tsconfig.json",
     "rebuild": "electron-rebuild -f -w canvas",
     "rebuild:all": "electron-rebuild",
-    "postinstall": "electron-rebuild -f -w canvas",
+    "postinstall": "node -e \"try { require('child_process').execSync('electron-rebuild -f -w canvas', {stdio: 'inherit'}); } catch(e) { console.warn('Canvas rebuild failed. Run npm run rebuild after installing GTK+. See CANVAS_WINDOWS_SETUP.md'); }\"",
     "dev": "tsc --watch",
     "dev:ui": "vite",
     "dev:electron": "concurrently \"npm run dev:ui\" \"wait-on http://localhost:3000 && electron .\"",
@@ -22,7 +22,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "canvas": "^2.11.2",
+    "cairo": "^0.1.0-alpha.3",
+    "canvas": "^3.2.0",
     "electron": "^27.0.0",
     "lzma-native": "^8.0.0",
     "react": "^18.2.0",
@@ -38,6 +39,7 @@
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.0",
     "electron-rebuild": "^3.2.9",
+    "node-gyp": "^12.1.0",
     "typescript": "^5.0.0",
     "vite": "^5.0.0",
     "wait-on": "^7.0.1"

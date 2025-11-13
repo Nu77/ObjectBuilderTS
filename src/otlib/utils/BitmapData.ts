@@ -3,15 +3,30 @@
 *  Replaces Flash's flash.display.BitmapData
 */
 
-import { createCanvas, Canvas, CanvasRenderingContext2D } from "canvas";
 import { Sharp } from "sharp";
+
+// Try to import canvas, but make it optional
+let createCanvas: ((width: number, height: number) => any) | null = null;
+let Canvas: any = null;
+let CanvasRenderingContext2D: any = null;
+
+try {
+    const canvasModule = require("canvas");
+    createCanvas = canvasModule.createCanvas;
+    Canvas = canvasModule.Canvas;
+    CanvasRenderingContext2D = canvasModule.CanvasRenderingContext2D;
+} catch (error) {
+    console.warn("Canvas module not available. Image processing features may be limited.");
+    console.warn("To fix this, install GTK+ and run: npm run rebuild");
+    console.warn("See CANVAS_WINDOWS_SETUP.md for instructions.");
+}
 
 export class BitmapData {
     private _width: number;
     private _height: number;
     private _transparent: boolean;
-    private _canvas: Canvas | null = null;
-    private _context: CanvasRenderingContext2D | null = null;
+    private _canvas: any | null = null;
+    private _context: any | null = null;
     private _imageData: ImageData | null = null;
     private _buffer: Buffer | null = null;
 
@@ -20,10 +35,18 @@ export class BitmapData {
         this._height = height;
         this._transparent = transparent;
         
-        this._canvas = createCanvas(width, height);
-        this._context = this._canvas.getContext("2d");
+        if (createCanvas) {
+            try {
+                this._canvas = createCanvas(width, height);
+                this._context = this._canvas.getContext("2d");
+            } catch (error) {
+                console.warn("Failed to create canvas:", error);
+            }
+        } else {
+            console.warn("Canvas not available. BitmapData will have limited functionality.");
+        }
         
-        if (fillColor !== 0x00000000) {
+        if (fillColor !== 0x00000000 && this._context) {
             this.fillRect(0, 0, width, height, fillColor);
         }
     }
@@ -161,16 +184,27 @@ export class BitmapData {
             return Promise.resolve(Buffer.alloc(0));
         }
         const mimeType = format === "png" ? "image/png" : "image/jpeg";
-        return new Promise((resolve, reject) => {
-            const canvas = this._canvas!;
-            (canvas.toBuffer as any)((err: Error | null, buffer: Buffer) => {
-                if (err) {
-                    reject(err);
+        try {
+            // Canvas 3.x uses Promise-based toBuffer
+            const buffer = this._canvas.toBuffer(mimeType);
+            return Promise.resolve(buffer);
+        } catch (error) {
+            // Fallback for older canvas versions with callback API
+            return new Promise((resolve, reject) => {
+                const canvas = this._canvas!;
+                if (typeof (canvas.toBuffer as any) === 'function') {
+                    (canvas.toBuffer as any)((err: Error | null, buffer: Buffer) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(buffer);
+                        }
+                    }, mimeType);
                 } else {
-                    resolve(buffer);
+                    reject(new Error('Canvas toBuffer not available'));
                 }
-            }, mimeType);
-        });
+            });
+        }
     }
 
     private argbToRgba(argb: number): { r: number; g: number; b: number; a: number } {

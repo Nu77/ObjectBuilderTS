@@ -79,6 +79,10 @@ export const LoadFilesDialog: React.FC<LoadFilesDialogProps> = ({
   };
 
   const handleLoad = () => {
+    if (!datFile || !sprFile) {
+      return;
+    }
+    
     onLoad({
       version: selectedVersion,
       ...options,
@@ -116,11 +120,33 @@ export const LoadFilesDialog: React.FC<LoadFilesDialogProps> = ({
           <h4>Files</h4>
           <div className="load-files-field">
             <label>DAT File:</label>
-            <div className="file-path">{datFile || 'Not selected'}</div>
+            <div className={`file-path ${datFile ? 'file-path-valid' : 'file-path-invalid'}`}>
+              {datFile ? (
+                <>
+                  <span className="file-path-text" title={datFile}>
+                    {datFile.split(/[/\\]/).pop() || datFile}
+                  </span>
+                  <span className="file-path-icon">✓</span>
+                </>
+              ) : (
+                <span className="file-path-placeholder">Not selected</span>
+              )}
+            </div>
           </div>
           <div className="load-files-field">
             <label>SPR File:</label>
-            <div className="file-path">{sprFile || 'Not selected'}</div>
+            <div className={`file-path ${sprFile ? 'file-path-valid' : 'file-path-invalid'}`}>
+              {sprFile ? (
+                <>
+                  <span className="file-path-text" title={sprFile}>
+                    {sprFile.split(/[/\\]/).pop() || sprFile}
+                  </span>
+                  <span className="file-path-icon">✓</span>
+                </>
+              ) : (
+                <span className="file-path-placeholder">Not selected</span>
+              )}
+            </div>
           </div>
         </div>
 

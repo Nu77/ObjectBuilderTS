@@ -144,5 +144,17 @@ export class FileDialogService {
       properties: ['openFile', 'multiSelections'],
     });
   }
+
+  public async openSprFiles(defaultPath?: string): Promise<DialogResult> {
+    return this.showOpenDialog({
+      title: 'Open SPR Files',
+      defaultPath,
+      filters: [
+        { name: 'SPR Files', extensions: ['spr'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile', 'multiSelections'],
+    });
+  }
 }
 
