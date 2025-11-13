@@ -54,8 +54,11 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    renderThing(ctx, thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns);
-  }, [thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns]);
+    // Render at zoomed size for proper scaling
+    const zoomedWidth = width * zoom;
+    const zoomedHeight = height * zoom;
+    renderThing(ctx, thingData, zoomedWidth, zoomedHeight, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns, zoom);
+  }, [thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns, zoom]);
 
   // Animation effect
   useEffect(() => {
@@ -148,7 +151,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     py: number,
     pz: number,
     frame: number,
-    showAllPatterns: boolean = false
+    showAllPatterns: boolean = false,
+    zoom: number = 1
   ) => {
     // Clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -157,8 +161,19 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     ctx.fillStyle = '#636363';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+    // Scale context by zoom so content renders at correct size
+    // canvasWidth/Height are already zoomed, so we need to scale by zoom
+    // to render base-size content that appears zoomed
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    
+    // Now render at base size - all coordinates will be automatically scaled
+    const baseWidth = canvasWidth / zoom;
+    const baseHeight = canvasHeight / zoom;
+
     if (!thingData) {
-      renderPlaceholder(ctx, canvasWidth, canvasHeight);
+      renderPlaceholder(ctx, baseWidth, baseHeight);
+      ctx.restore();
       return;
     }
 
@@ -167,12 +182,13 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     if (!frameGroup) {
       // Fallback to simple sprite rendering
       if (thingData.sprites && thingData.sprites.length > 0) {
-        renderSprites(ctx, thingData.sprites, canvasWidth, canvasHeight);
+        renderSprites(ctx, thingData.sprites, baseWidth, baseHeight);
       } else if (thingData.pixels) {
-        renderSpritePixels(ctx, thingData.pixels, canvasWidth, canvasHeight);
+        renderSpritePixels(ctx, thingData.pixels, baseWidth, baseHeight);
       } else {
-        renderPlaceholder(ctx, canvasWidth, canvasHeight);
+        renderPlaceholder(ctx, baseWidth, baseHeight);
       }
+      ctx.restore();
       return;
     }
 
@@ -192,27 +208,29 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     }
     
     if (!groupSprites || groupSprites.length === 0) {
-      renderPlaceholder(ctx, canvasWidth, canvasHeight);
+      renderPlaceholder(ctx, baseWidth, baseHeight);
+      ctx.restore();
       return;
     }
 
     // Render multi-sprite composition
     // Show all patterns only if explicitly requested
-    renderFrameGroup(ctx, frameGroup, groupSprites, canvasWidth, canvasHeight, px, py, pz, frame, showAllPatterns);
+    renderFrameGroup(ctx, frameGroup, groupSprites, baseWidth, baseHeight, px, py, pz, frame, showAllPatterns);
+    ctx.restore();
   };
 
-  const renderFrameGroup = (
-    ctx: CanvasRenderingContext2D,
-    frameGroup: any,
-    sprites: any[],
-    canvasWidth: number,
-    canvasHeight: number,
-    px: number,
-    py: number,
-    pz: number,
-    frame: number,
-    showAllPatterns: boolean = false
-  ) => {
+	const renderFrameGroup = (
+		ctx: CanvasRenderingContext2D,
+		frameGroup: any,
+		sprites: any[],
+		canvasWidth: number,
+		canvasHeight: number,
+		px: number,
+		py: number,
+		pz: number,
+		frame: number,
+		showAllPatterns: boolean = false
+	) => {
     const spriteSize = frameGroup.exactSize || 32;
     const patternX = frameGroup.patternX || 1;
     const patternY = frameGroup.patternY || 1;
@@ -230,12 +248,13 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       const gridWidth = gridCols * cellWidth;
       const gridHeight = gridRows * cellHeight;
       
-      // Scale to fit canvas, but ensure minimum scale for visibility
+      // Scale to fit canvas (canvas is already at base size due to zoom scaling in renderThing)
+      // We want to fit the grid within the available canvas space
       const scaleX = canvasWidth / gridWidth;
       const scaleY = canvasHeight / gridHeight;
-      let scale = Math.min(scaleX, scaleY, 1); // Don't scale up, but allow down-scaling
+      let scale = Math.min(scaleX, scaleY); // Allow scaling to fit
       
-      // Ensure scale is not zero or too small
+      // Ensure scale is not zero or too small, but allow it to be less than 1 to fit
       if (scale <= 0 || !isFinite(scale)) {
         scale = 0.1; // Fallback minimum scale
       }
@@ -251,36 +270,36 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       const startY = Math.max(0, (canvasHeight - scaledGridHeight) / 2);
       
       // Render each cell in the grid
-      for (let pyIdx = 0; pyIdx < gridRows; pyIdx++) {
-        for (let pxIdx = 0; pxIdx < gridCols; pxIdx++) {
+			for (let pyIdx = 0; pyIdx < gridRows; pyIdx++) {
+				for (let pxIdx = 0; pxIdx < gridCols; pxIdx++) {
           // Calculate cell position
           const cellX = startX + pxIdx * scaledCellWidth;
           const cellY = startY + pyIdx * scaledCellHeight;
           
           // Render this pattern variation in its cell
           // For patternY (addons), combine base with the patternY layer
-          if (patternY > 1 && pyIdx > 0) {
-            // Render base (patternY=0) first, scaled and positioned
-            ctx.save();
-            ctx.translate(cellX, cellY);
-            ctx.scale(scale, scale);
-            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, 0, pz, frame, 0, 0);
-            ctx.restore();
-            
-            // Then overlay the patternY layer for this cell
-            ctx.save();
-            ctx.translate(cellX, cellY);
-            ctx.scale(scale, scale);
-            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0);
-            ctx.restore();
-          } else {
-            // No patternY variations or base layer, just render the single pattern
-            ctx.save();
-            ctx.translate(cellX, cellY);
-            ctx.scale(scale, scale);
-            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0);
-            ctx.restore();
-          }
+					if (patternY > 1 && pyIdx > 0) {
+						// Render base (patternY=0) first, scaled and positioned
+						ctx.save();
+						ctx.translate(cellX, cellY);
+						ctx.scale(scale, scale);
+						renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, 0, pz, frame, 0, 0);
+						ctx.restore();
+
+						// Then overlay only the current patternY layer for this cell
+						ctx.save();
+						ctx.translate(cellX, cellY);
+						ctx.scale(scale, scale);
+						renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0, false);
+						ctx.restore();
+					} else {
+						// No patternY variations or base layer, just render the single pattern
+						ctx.save();
+						ctx.translate(cellX, cellY);
+						ctx.scale(scale, scale);
+						renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0);
+						ctx.restore();
+					}
         }
       }
       return;
@@ -302,129 +321,122 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     const offsetX = (canvasWidth - totalWidth) / 2;
     const offsetY = (canvasHeight - totalHeight) / 2;
     
-    // For patternY (addons), combine all patternY layers
-    // patternY=0 is always the base, and patternY>0 are addons that overlay
-    if (patternY > 1) {
-      // Always render base (patternY=0) first
-      renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, 0, pzClamped, frameClamped, offsetX, offsetY);
-      
-      // Then overlay all patternY layers from 1 up to the selected patternY
-      // This shows base + all addons up to the selected one
-      for (let pyIdx = 1; pyIdx <= pyClamped; pyIdx++) {
-        renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyIdx, pzClamped, frameClamped, offsetX, offsetY);
-      }
-    } else {
-      // No patternY variations, just render the single pattern
-      renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyClamped, pzClamped, frameClamped, offsetX, offsetY);
-    }
+	// Render the selected composition. When patternY has multiple layers, we combine base + addon layers up to the
+	// selected pattern value to mimic the in-game appearance.
+	renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyClamped, pzClamped, frameClamped, offsetX, offsetY);
   };
 
-  const renderSinglePattern = (
-    ctx: CanvasRenderingContext2D,
-    frameGroup: any,
-    sprites: any[],
-    _totalWidth: number,
-    _totalHeight: number,
-    px: number,
-    py: number,
-    pz: number,
-    frame: number,
-    offsetX: number = 0,
-    offsetY: number = 0
-  ) => {
-    const spriteSize = frameGroup.exactSize || 32;
-    const layers = frameGroup.layers || 1;
-    const width = frameGroup.width || 1;
-    const height = frameGroup.height || 1;
+	const renderSinglePattern = (
+		ctx: CanvasRenderingContext2D,
+		frameGroup: any,
+		sprites: any[],
+		_totalWidth: number,
+		_totalHeight: number,
+		px: number,
+		py: number,
+		pz: number,
+		frame: number,
+		offsetX: number = 0,
+		offsetY: number = 0,
+		stackAddonLayers: boolean = true
+	) => {
+		const spriteSize = frameGroup.exactSize || 32;
+		const layers = frameGroup.layers || 1;
+		const width = frameGroup.width || 1;
+		const height = frameGroup.height || 1;
+		const frames = frameGroup.frames || 1;
+		const patternX = frameGroup.patternX || 1;
+		const patternY = frameGroup.patternY || 1;
+		const patternZ = frameGroup.patternZ || 1;
 
-    // Helper function to calculate sprite index using FrameGroup formula
-    const getSpriteIndex = (w: number, h: number, l: number, px: number, py: number, pz: number, f: number): number => {
-      if (typeof frameGroup.getSpriteIndex === 'function') {
-        return frameGroup.getSpriteIndex(w, h, l, px, py, pz, f);
-      }
-      // Fallback calculation using the same formula as FrameGroup.getSpriteIndex
-      // Formula: ((((((frame % frames) * patternZ + pz) * patternY + py) * patternX + px) * layers + l) * height + h) * width + w
-      const frames = frameGroup.frames || 1;
-      const patternX = frameGroup.patternX || 1;
-      const patternY = frameGroup.patternY || 1;
-      const patternZ = frameGroup.patternZ || 1;
-      const frameMod = f % frames;
-      const step1 = frameMod * patternZ + pz;
-      const step2 = step1 * patternY + py;
-      const step3 = step2 * patternX + px;
-      const step4 = step3 * layers + l;
-      const step5 = step4 * height + h;
-      const step6 = step5 * width + w;
-      return step6;
-    };
+		const pxClamped = Math.max(0, Math.min(px, patternX - 1));
+		const pyClamped = Math.max(0, Math.min(py, patternY - 1));
+		const pzClamped = Math.max(0, Math.min(pz, patternZ - 1));
+		const frameClamped = frame % frames;
 
-    // Render each layer (from bottom to top)
-    for (let l = 0; l < layers; l++) {
-      // Render each sprite in the width x height grid
-      // Sprites are drawn bottom-to-top, right-to-left
-      for (let w = 0; w < width; w++) {
-        for (let h = 0; h < height; h++) {
-          // Get sprite index using FrameGroup formula
-          const spriteIndex = getSpriteIndex(w, h, l, px, py, pz, frame);
-          
-              // Check if spriteIndex is valid and within bounds
-          if (spriteIndex >= 0 && spriteIndex < sprites.length) {
-            const spriteData = sprites[spriteIndex];
-            if (spriteData) {
-              // Handle different sprite data structures
-              // After Electron IPC, pixels should be ArrayBuffer
-              let pixels: Uint8Array | ArrayBuffer | null = null;
-              
-              if (spriteData.pixels) {
-                if (spriteData.pixels instanceof ArrayBuffer) {
-                  pixels = spriteData.pixels;
-                } else if (spriteData.pixels instanceof Uint8Array) {
-                  pixels = spriteData.pixels.buffer;
-                } else if (Buffer.isBuffer && Buffer.isBuffer(spriteData.pixels)) {
-                  const buffer = spriteData.pixels.buffer;
-                  pixels = buffer instanceof ArrayBuffer ? buffer.slice(
-                    spriteData.pixels.byteOffset,
-                    spriteData.pixels.byteOffset + spriteData.pixels.byteLength
-                  ) : new Uint8Array(spriteData.pixels).buffer;
-                } else {
-                  pixels = spriteData.pixels;
-                }
-              } else if (spriteData instanceof ArrayBuffer) {
-                pixels = spriteData;
-              } else if (spriteData instanceof Uint8Array) {
-                pixels = spriteData.buffer instanceof ArrayBuffer ? spriteData.buffer : null;
-              } else if (Buffer.isBuffer && Buffer.isBuffer(spriteData)) {
-                const buffer = spriteData.buffer;
-                if (buffer instanceof ArrayBuffer) {
-                  pixels = buffer.slice(
-                    spriteData.byteOffset,
-                    spriteData.byteOffset + spriteData.byteLength
-                  );
-                } else {
-                  pixels = new Uint8Array(spriteData).buffer;
-                }
-              } else if (Array.isArray(spriteData)) {
-                // If it's an array, try to use it as pixel data
-                pixels = new Uint8Array(spriteData).buffer;
-              }
-              
-              if (pixels) {
-                // Calculate position (sprites are drawn bottom-to-top, right-to-left)
-                // In Tibia, sprites are positioned from bottom-right
-                const x = offsetX + (width - w - 1) * spriteSize;
-                const y = offsetY + (height - h - 1) * spriteSize;
-                
-                renderSpritePixelsAt(ctx, pixels, x, y, spriteSize);
-              }
-            }
-          } else if (spriteIndex >= sprites.length) {
-            // Sprite index out of bounds - this can happen with incomplete sprite data
-            // Silently skip instead of logging to avoid console spam
-          }
-        }
-      }
-    }
-  };
+		// Helper function to calculate sprite index using FrameGroup formula
+		const getSpriteIndex = (w: number, h: number, l: number, px: number, py: number, pz: number, f: number): number => {
+			if (typeof frameGroup.getSpriteIndex === 'function') {
+				return frameGroup.getSpriteIndex(w, h, l, px, py, pz, f);
+			}
+			// Fallback calculation using the same formula as FrameGroup.getSpriteIndex
+			// Formula: ((((((frame % frames) * patternZ + pz) * patternY + py) * patternX + px) * layers + l) * height + h) * width + w
+			const frameMod = f % frames;
+			const step1 = frameMod * patternZ + pz;
+			const step2 = step1 * patternY + py;
+			const step3 = step2 * patternX + px;
+			const step4 = step3 * layers + l;
+			const step5 = step4 * height + h;
+			const step6 = step5 * width + w;
+			return step6;
+		};
+
+		const renderLayer = (pyValue: number) => {
+			for (let l = 0; l < layers; l++) {
+				for (let w = 0; w < width; w++) {
+					for (let h = 0; h < height; h++) {
+						const spriteIndex = getSpriteIndex(w, h, l, pxClamped, pyValue, pzClamped, frameClamped);
+
+						if (spriteIndex >= 0 && spriteIndex < sprites.length) {
+							const spriteData = sprites[spriteIndex];
+							if (spriteData) {
+								let pixels: Uint8Array | ArrayBuffer | null = null;
+
+								if (spriteData.pixels) {
+									if (spriteData.pixels instanceof ArrayBuffer) {
+										pixels = spriteData.pixels;
+									} else if (spriteData.pixels instanceof Uint8Array) {
+										pixels = spriteData.pixels.buffer;
+									} else if (Buffer.isBuffer && Buffer.isBuffer(spriteData.pixels)) {
+										const buffer = spriteData.pixels.buffer;
+										pixels = buffer instanceof ArrayBuffer ? buffer.slice(
+											spriteData.pixels.byteOffset,
+											spriteData.pixels.byteOffset + spriteData.pixels.byteLength
+										) : new Uint8Array(spriteData.pixels).buffer;
+									} else {
+										pixels = spriteData.pixels;
+									}
+								} else if (spriteData instanceof ArrayBuffer) {
+									pixels = spriteData;
+								} else if (spriteData instanceof Uint8Array) {
+									pixels = spriteData.buffer instanceof ArrayBuffer ? spriteData.buffer : null;
+								} else if (Buffer.isBuffer && Buffer.isBuffer(spriteData)) {
+									const buffer = spriteData.buffer;
+									if (buffer instanceof ArrayBuffer) {
+										pixels = buffer.slice(
+											spriteData.byteOffset,
+											spriteData.byteOffset + spriteData.byteLength
+										);
+									} else {
+										pixels = new Uint8Array(spriteData).buffer;
+									}
+								} else if (Array.isArray(spriteData)) {
+									pixels = new Uint8Array(spriteData).buffer;
+								}
+
+								if (pixels) {
+									const x = offsetX + (width - w - 1) * spriteSize;
+									const y = offsetY + (height - h - 1) * spriteSize;
+
+									renderSpritePixelsAt(ctx, pixels, x, y, spriteSize);
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		if (patternY > 1 && stackAddonLayers) {
+			renderLayer(0);
+
+			for (let pyIdx = 1; pyIdx <= pyClamped; pyIdx++) {
+				renderLayer(pyIdx);
+			}
+		} else {
+			renderLayer(pyClamped);
+		}
+	};
 
   const renderSpritePixelsAt = (
     ctx: CanvasRenderingContext2D,
@@ -524,32 +536,33 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     ctx.fillText('No preview available', width / 2, height / 2);
   };
 
-  const displayWidth = width * zoom;
-  const displayHeight = height * zoom;
+  // Canvas should be rendered at zoomed size for proper pixel rendering
+  const canvasWidth = width * zoom;
+  const canvasHeight = height * zoom;
 
   return (
-    <div className="preview-canvas-container">
-      <div 
-        className="preview-canvas-wrapper"
-        style={{
-          width: '100%',
-          height: '100%',
-          maxWidth: '100%',
-          maxHeight: '100%',
-          overflow: 'auto',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
+    <div className="preview-canvas-container" title="PreviewCanvas component">
+			<div 
+				className="preview-canvas-wrapper"
+				title="preview-canvas-wrapper"
+				style={{
+					minWidth: canvasWidth,
+					minHeight: canvasHeight,
+					display: 'flex',
+					justifyContent: 'center',
+					alignItems: 'center',
+					overflow: 'auto',
+				}}
+			>
         <canvas
           ref={canvasRef}
-          width={width}
-          height={height}
+          width={canvasWidth}
+          height={canvasHeight}
           className="preview-canvas"
+          title="preview-canvas (HTMLCanvasElement)"
           style={{
-            width: displayWidth,
-            height: displayHeight,
+            width: canvasWidth,
+            height: canvasHeight,
             imageRendering: 'pixelated',
             maxWidth: '100%',
             maxHeight: '100%',
@@ -557,7 +570,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         />
       </div>
       {isAnimating && (
-        <div className="preview-animation-indicator" title="Animation playing">
+        <div className="preview-animation-indicator" title="preview-animation-indicator (Animation playing)">
           ●
         </div>
       )}

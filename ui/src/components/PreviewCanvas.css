@@ -1,13 +1,12 @@
 .preview-canvas-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  max-height: 200px;
-  background-color: var(--bg-secondary);
-  padding: 6px;
-  flex-shrink: 0;
+	position: relative;
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	background-color: var(--bg-secondary);
+	padding: 6px;
+	flex-shrink: 0;
+	max-width: 100%;
 }
 
 .preview-canvas {
