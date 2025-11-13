@@ -336,14 +336,14 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 
 ## 📊 Implementation Progress
 
-**Overall Completion: ~89%**
+**Overall Completion: ~90%**
 
 - **Backend**: 100% ✅
 - **Core UI**: 96% ✅
-- **Dialogs**: 85% 🟡
+- **Dialogs**: 90% ✅
 - **Tools**: 70% 🟡
 - **Hotkeys**: 95% ✅
-- **Advanced Features**: 63% 🟡
+- **Advanced Features**: 65% 🟡
 
 ---
 
@@ -368,4 +368,5 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 - ✅ Implemented Virtual Scrolling for ThingList (performance improvement for large lists)
 - ✅ Implemented Look Generator (generate character look XML with copy/paste support)
 - ✅ Implemented Import Thing Window (advanced import dialog with preview for single OBD files)
+- ✅ Enhanced Find Dialog with property-based search, tabs for things/sprites, multi-select, and advanced filters
 

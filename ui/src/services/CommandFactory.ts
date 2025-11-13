@@ -80,6 +80,14 @@ export class CommandFactory {
     };
   }
 
+  static createFindSpritesCommand(unusedSprites: boolean, emptySprites: boolean): CommandData {
+    return {
+      type: 'FindSpritesCommand',
+      unusedSprites,
+      emptySprites,
+    };
+  }
+
   static createImportThingsFromFilesCommand(filePaths: string[]): CommandData {
     return {
       type: 'ImportThingsFromFilesCommand',
