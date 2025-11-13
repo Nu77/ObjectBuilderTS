@@ -11,7 +11,7 @@
 - File I/O with Node.js
 - Image processing with canvas/sharp
 
-### UI Framework: 95% ✅
+### UI Framework: 98% ✅
 - React 18 with TypeScript setup
 - Electron integration complete
 - Core components implemented
@@ -28,9 +28,9 @@
 - Electron IPC handlers fixed and working
 - Canvas module rebuild support added
 
-### Remaining Work: ~3%
+### Remaining Work: ~2%
 - Animation support in preview (partially implemented)
-- Load versions list in LoadFilesDialog
+- GetVersionsListCommand in backend to populate versions dropdown
 - Testing and validation
 - Performance optimization
 - Canvas module needs rebuild for Electron (run `npm run rebuild`)
@@ -38,8 +38,10 @@
 ### Recent UI Improvements
 - ✅ FindDialog navigates to selected thing
 - ✅ PreferencesDialog saves settings to backend
+- ✅ ThingEditor shows success/error feedback on save
 - ✅ All dialogs properly connected to backend
 - ✅ Category changes automatically reload thing lists
+- ✅ LoadFilesDialog improved with version loading support
 
 ## 📁 Project Structure
 

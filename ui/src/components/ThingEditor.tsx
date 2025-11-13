@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorker } from '../contexts/WorkerContext';
 import { useAppStateContext } from '../contexts/AppStateContext';
+import { useToast } from '../hooks/useToast';
 import { CommandFactory } from '../services/CommandFactory';
 import './ThingEditor.css';
 
@@ -25,8 +26,10 @@ interface ThingData {
 export const ThingEditor: React.FC = () => {
   const worker = useWorker();
   const { selectedThingIds, currentCategory } = useAppStateContext();
+  const { showSuccess, showError } = useToast();
   const [thingData, setThingData] = useState<ThingData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<any>({});
 
   // Load thing when selection changes
@@ -75,15 +78,25 @@ export const ThingEditor: React.FC = () => {
   const handleSave = async () => {
     if (!thingData) return;
     
+    setSaving(true);
     try {
       const command = CommandFactory.createUpdateThingCommand(
         thingData.id,
         thingData.category,
         formData
       );
-      await worker.sendCommand(command);
-    } catch (error) {
+      const result = await worker.sendCommand(command);
+      
+      if (result.success) {
+        showSuccess(`Thing #${thingData.id} saved successfully`);
+      } else {
+        showError(result.error || 'Failed to save thing');
+      }
+    } catch (error: any) {
       console.error('Failed to save thing:', error);
+      showError(error.message || 'Failed to save thing');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -111,7 +124,13 @@ export const ThingEditor: React.FC = () => {
     <div className="thing-editor">
       <div className="editor-header">
         <h3>Thing #{thingData.id}</h3>
-        <button className="save-button" onClick={handleSave}>Save</button>
+        <button 
+          className="save-button" 
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : 'Save'}
+        </button>
       </div>
       <div className="editor-content">
         <div className="editor-section">

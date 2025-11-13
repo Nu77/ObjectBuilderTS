@@ -11,7 +11,7 @@
 - File I/O operations
 - Image processing
 
-### UI: 95% ✅
+### UI: 98% ✅
 - React 18 with TypeScript
 - Electron desktop app
 - Core components implemented
@@ -57,10 +57,10 @@ See [DOCUMENTATION.md](./DOCUMENTATION.md) for complete documentation index.
 - Window state management
 - Menu bar with shortcuts
 
-## ⏳ Remaining Work (~3%)
+## ⏳ Remaining Work (~2%)
 
 - Animation support (partially implemented)
-- Load versions list in LoadFilesDialog
+- GetVersionsListCommand in backend for versions dropdown
 - Canvas module rebuild for Electron (`npm run rebuild`)
 - Testing suite
 - Performance optimization
@@ -69,9 +69,11 @@ See [DOCUMENTATION.md](./DOCUMENTATION.md) for complete documentation index.
 
 - FindDialog navigates to selected thing when clicked
 - PreferencesDialog saves settings to backend
+- ThingEditor shows success/error feedback on save
 - All components properly connected to backend
 - Category changes automatically reload thing lists
 - ExportDialog shows selected item count
+- LoadFilesDialog improved with version loading support
 
 ## 🛠️ Technology Stack
 

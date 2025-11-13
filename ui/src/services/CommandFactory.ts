@@ -155,5 +155,12 @@ export class CommandFactory {
       settings,
     };
   }
+
+  static createLoadVersionsCommand(filePath: string): CommandData {
+    return {
+      type: 'LoadVersionsCommand',
+      path: filePath,
+    };
+  }
 }
 

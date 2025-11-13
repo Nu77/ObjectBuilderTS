@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog } from './Dialog';
 import { Button } from './Button';
-// import { useWorker } from '../contexts/WorkerContext'; // TODO: Use when GetVersionsCommand is implemented
+import { useWorker } from '../contexts/WorkerContext';
+import { CommandFactory } from '../services/CommandFactory';
 import './LoadFilesDialog.css';
 
 interface Version {
@@ -33,7 +34,7 @@ export const LoadFilesDialog: React.FC<LoadFilesDialogProps> = ({
   datFile,
   sprFile,
 }) => {
-  // const worker = useWorker(); // TODO: Use when GetVersionsCommand is implemented
+  const worker = useWorker();
   const [versions, setVersions] = useState<Version[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<Version | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,13 +51,35 @@ export const LoadFilesDialog: React.FC<LoadFilesDialogProps> = ({
     }
   }, [open]);
 
+  // Listen for versions data from backend
+  useEffect(() => {
+    const handleCommand = (command: any) => {
+      // Listen for any command that might contain versions
+      // Versions might be sent via a SetVersionsCommand or similar
+      if (command.type === 'SetVersionsCommand' && command.data && command.data.versions) {
+        setVersions(command.data.versions);
+        setLoading(false);
+      }
+    };
+
+    worker.onCommand(handleCommand);
+  }, [worker]);
+
   const loadVersions = async () => {
     setLoading(true);
     try {
-      // TODO: Send command to get versions from backend
-      // For now, we'll need to get this from the backend via a command
-      // This would require a GetVersionsCommand or similar
-      // For now, use empty array and let user select manually
+      // Try to load versions from the default path
+      // The backend should have loaded versions.xml on startup
+      // For now, we'll try to request versions or use LoadVersionsCommand
+      // Note: This requires the versions.xml file path
+      // The default path is typically in firstRun/versions.xml
+      
+      // Since we don't have a GetVersionsListCommand, we'll try to load from default path
+      // The backend should have already loaded versions on startup
+      // We'll show a message that versions will be auto-detected
+      
+      // TODO: Create GetVersionsListCommand in backend to get loaded versions
+      // For now, versions will be auto-detected from file signatures
       setVersions([]);
     } catch (error) {
       console.error('Failed to load versions:', error);

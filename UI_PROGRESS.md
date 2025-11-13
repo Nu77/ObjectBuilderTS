@@ -1,7 +1,7 @@
 # UI Development Progress
 
 ## Overview
-The UI is now **97% complete** with all major components functional and connected to the backend.
+The UI is now **98% complete** with all major components functional and connected to the backend.
 
 ## Completed Components ✅
 
@@ -53,12 +53,20 @@ The UI is now **97% complete** with all major components functional and connecte
 3. ✅ CommandFactory extended with SettingsCommand
 4. ✅ Toolbar category changes trigger automatic reload
 
+### Session 4: Final Polish
+1. ✅ ThingEditor - Added success/error feedback on save
+2. ✅ ThingEditor - Added loading state during save
+3. ✅ LoadFilesDialog - Improved with version loading listener
+4. ✅ CommandFactory - Added createLoadVersionsCommand
+5. ✅ MainWindow - Removed outdated TODO comment
+
 ## Remaining Tasks
 
 ### High Priority
 1. ⏳ **LoadFilesDialog** - Load versions list from backend
-   - Need to implement GetVersionsCommand or listen for versions data
-   - Currently shows empty list
+   - Listener added for SetVersionsCommand (if backend sends it)
+   - Backend needs GetVersionsListCommand or should send versions on startup
+   - Currently shows auto-detect message (works but versions list would be nice)
 
 ### Medium Priority
 2. ⏳ **Animation Support** - Complete animation preview

@@ -121,8 +121,8 @@ const MainWindowContent: React.FC = () => {
         open={showPreferencesDialog}
         onClose={() => setShowPreferencesDialog(false)}
         onSave={(settings) => {
-          // TODO: Save settings to backend
-          console.log('Saving preferences:', settings);
+          // Settings are saved via SettingsCommand in PreferencesDialog component
+          console.log('Preferences saved:', settings);
         }}
       />
       <FindDialog

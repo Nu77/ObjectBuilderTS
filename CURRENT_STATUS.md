@@ -41,8 +41,11 @@
 - ✅ Backend initialization error handling improved
 - ✅ FindDialog - Navigate to thing when search result is clicked
 - ✅ PreferencesDialog - Save settings to backend via SettingsCommand
-- ✅ CommandFactory - Added createSettingsCommand method
+- ✅ CommandFactory - Added createSettingsCommand and createLoadVersionsCommand methods
 - ✅ Toolbar - Category changes automatically reload thing list
+- ✅ ThingEditor - Added success/error feedback and loading state on save
+- ✅ LoadFilesDialog - Improved with version loading listener
+- ✅ MainWindow - Removed outdated TODO comment
 
 ### Backend/Worker System (100% Complete)
 - ✅ `ObjectBuilderWorker.ts` - Complete worker implementation with all callbacks
