@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WorkerProvider, useWorker } from './contexts/WorkerContext';
+import { ThingEditorProvider } from './contexts/ThingEditorContext';
 import { MainWindow } from './components/MainWindow';
 import { SplashScreen } from './components/SplashScreen';
 import { useToast } from './hooks/useToast';
@@ -119,7 +120,9 @@ function App() {
   return (
     <ErrorBoundary>
       <WorkerProvider>
-        <AppContent />
+        <ThingEditorProvider>
+          <AppContent />
+        </ThingEditorProvider>
       </WorkerProvider>
     </ErrorBoundary>
   );

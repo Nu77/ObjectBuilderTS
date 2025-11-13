@@ -3,6 +3,7 @@ import { useWorker } from '../contexts/WorkerContext';
 import { useAppStateContext } from '../contexts/AppStateContext';
 import { useToast } from '../hooks/useToast';
 import { CommandFactory } from '../services/CommandFactory';
+import { useThingEditor } from '../contexts/ThingEditorContext';
 import './ThingEditor.css';
 
 interface ThingData {
@@ -27,10 +28,12 @@ export const ThingEditor: React.FC = () => {
   const worker = useWorker();
   const { selectedThingIds, currentCategory } = useAppStateContext();
   const { showSuccess, showError } = useToast();
+  const { registerSaveFunction } = useThingEditor();
   const [thingData, setThingData] = useState<ThingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<any>({});
+  const [originalFormData, setOriginalFormData] = useState<any>({});
 
   // Cache to prevent duplicate requests
   const loadingThingRef = useRef<number | null>(null);
@@ -68,7 +71,9 @@ export const ThingEditor: React.FC = () => {
             thingCategory === currentCategory) {
           setThingData(command.data);
           if (command.data && command.data.thing) {
-            setFormData(command.data.thing);
+            const thingData = command.data.thing;
+            setFormData(thingData);
+            setOriginalFormData(JSON.parse(JSON.stringify(thingData))); // Deep copy
           }
           setLoading(false);
           loadingThingRef.current = null; // Clear loading flag
@@ -97,8 +102,13 @@ export const ThingEditor: React.FC = () => {
     }));
   };
 
-  const handleSave = async () => {
-    if (!thingData) return;
+  const hasChanges = (): boolean => {
+    if (!thingData || !formData || !originalFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(originalFormData);
+  };
+
+  const handleSave = async (): Promise<boolean> => {
+    if (!thingData) return false;
     
     setSaving(true);
     try {
@@ -110,17 +120,32 @@ export const ThingEditor: React.FC = () => {
       const result = await worker.sendCommand(command);
       
       if (result.success) {
+        setOriginalFormData(JSON.parse(JSON.stringify(formData))); // Update original
         showSuccess(`Thing #${thingData.id} saved successfully`);
+        return true;
       } else {
         showError(result.error || 'Failed to save thing');
+        return false;
       }
     } catch (error: any) {
       console.error('Failed to save thing:', error);
       showError(error.message || 'Failed to save thing');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  // Register save function with context
+  useEffect(() => {
+    const saveFn = async () => {
+      if (hasChanges()) {
+        return await handleSave();
+      }
+      return true; // No changes to save
+    };
+    registerSaveFunction(saveFn);
+  }, [formData, thingData, originalFormData, registerSaveFunction]);
 
   if (loading) {
     return (
@@ -148,10 +173,10 @@ export const ThingEditor: React.FC = () => {
         <h3>Thing #{thingData.id}</h3>
         <button 
           className="save-button" 
-          onClick={handleSave}
-          disabled={saving}
+          onClick={() => handleSave()}
+          disabled={saving || !hasChanges()}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? 'Saving...' : hasChanges() ? 'Save' : 'Saved'}
         </button>
       </div>
       <div className="editor-content">

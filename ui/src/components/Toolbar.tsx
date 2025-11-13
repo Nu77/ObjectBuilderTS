@@ -3,6 +3,7 @@ import { useWorker } from '../contexts/WorkerContext';
 import { useAppStateContext } from '../contexts/AppStateContext';
 import { useProgress } from '../contexts/ProgressContext';
 import { useToast } from '../hooks/useToast';
+import { useThingEditor } from '../contexts/ThingEditorContext';
 import { CommandFactory } from '../services/CommandFactory';
 import { FileDialogService } from '../services/FileDialogService';
 import { LoadFilesDialog } from './LoadFilesDialog';
@@ -24,6 +25,7 @@ export const Toolbar: React.FC = () => {
   const { currentCategory, setCategory } = useAppStateContext();
   const { showProgress, hideProgress } = useProgress();
   const { showSuccess, showError } = useToast();
+  const { saveThingChanges } = useThingEditor();
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
   const [compileDialogOpen, setCompileDialogOpen] = useState(false);
@@ -33,14 +35,17 @@ export const Toolbar: React.FC = () => {
   const [clientChanged, setClientChanged] = useState(false);
   const [clientLoaded, setClientLoaded] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
+  const [settings, setSettings] = useState<any>({ autosaveThingChanges: false });
 
-  // Listen for client info changes
+  // Listen for client info changes and settings
   useEffect(() => {
     const handleCommand = (command: any) => {
       if (command.type === 'SetClientInfoCommand' && command.data) {
         setClientLoaded(command.data.loaded || false);
         setClientChanged(command.data.changed || false);
         setClientInfo(command.data);
+      } else if (command.type === 'SettingsCommand' && command.data && command.data.settings) {
+        setSettings(command.data.settings);
       }
     };
 
@@ -303,6 +308,11 @@ export const Toolbar: React.FC = () => {
     sprFile?: string;
   }) => {
     try {
+      // Auto-save thing changes if enabled
+      if (settings.autosaveThingChanges) {
+        await saveThingChanges();
+      }
+      
       showProgress('Compiling project...');
       
       if (options.useCustomLocation && options.datFile && options.sprFile && clientInfo) {

@@ -9,6 +9,9 @@ export class ObjectBuilderSettings implements ISettings {
     // List amounts
     public objectsListAmount: number = 100;
     public spritesListAmount: number = 100;
+    
+    // Auto-save settings
+    public autosaveThingChanges: boolean = false;
 
     // Language settings
     private _language: string[] = ["en_US"];
@@ -52,6 +55,7 @@ export class ObjectBuilderSettings implements ISettings {
             settingsClassType: this.settingsClassType,
             objectsListAmount: this.objectsListAmount,
             spritesListAmount: this.spritesListAmount,
+            autosaveThingChanges: this.autosaveThingChanges,
             language: this._language,
             maximized: this.maximized,
             windowX: this.windowX,
@@ -73,6 +77,9 @@ export class ObjectBuilderSettings implements ISettings {
             }
             if (data.spritesListAmount !== undefined) {
                 this.spritesListAmount = data.spritesListAmount;
+            }
+            if (data.autosaveThingChanges !== undefined) {
+                this.autosaveThingChanges = data.autosaveThingChanges;
             }
             if (data.language !== undefined) {
                 this._language = Array.isArray(data.language) ? data.language : [data.language];
