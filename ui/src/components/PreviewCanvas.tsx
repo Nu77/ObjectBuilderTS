@@ -247,15 +247,24 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             const spriteData = sprites[spriteIndex];
             if (spriteData) {
               // Handle different sprite data structures
-              let pixels: Uint8Array | ArrayBuffer | Buffer | null = null;
+              // After Electron IPC, pixels should be ArrayBuffer
+              let pixels: Uint8Array | ArrayBuffer | null = null;
               
               if (spriteData.pixels) {
-                pixels = spriteData.pixels;
-              } else if (spriteData instanceof Uint8Array || spriteData instanceof ArrayBuffer || Buffer.isBuffer(spriteData)) {
+                if (spriteData.pixels instanceof ArrayBuffer) {
+                  pixels = spriteData.pixels;
+                } else if (spriteData.pixels instanceof Uint8Array) {
+                  pixels = spriteData.pixels.buffer;
+                } else {
+                  pixels = spriteData.pixels;
+                }
+              } else if (spriteData instanceof ArrayBuffer) {
                 pixels = spriteData;
+              } else if (spriteData instanceof Uint8Array) {
+                pixels = spriteData.buffer;
               } else if (Array.isArray(spriteData)) {
                 // If it's an array, try to use it as pixel data
-                pixels = new Uint8Array(spriteData);
+                pixels = new Uint8Array(spriteData).buffer;
               }
               
               if (pixels) {

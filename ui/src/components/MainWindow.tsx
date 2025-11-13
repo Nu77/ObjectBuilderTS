@@ -14,6 +14,7 @@ import { FindDialog } from './FindDialog';
 import { ImportDialog } from './ImportDialog';
 import { ExportDialog } from './ExportDialog';
 import { MergeFilesDialog } from './MergeFilesDialog';
+import { LogWindow } from './LogWindow';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { ProgressProvider } from '../contexts/ProgressContext';
 import { CommandFactory } from '../services/CommandFactory';
@@ -33,6 +34,7 @@ const MainWindowContent: React.FC = () => {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showLogWindow, setShowLogWindow] = useState(false);
   const [exportType, setExportType] = useState<'things' | 'sprites'>('things');
 
   // Listen for menu actions
@@ -71,6 +73,9 @@ const MainWindowContent: React.FC = () => {
           break;
         case 'file-merge':
           setShowMergeDialog(true);
+          break;
+        case 'window-log':
+          setShowLogWindow(true);
           break;
         default:
           break;
@@ -253,6 +258,10 @@ const MainWindowContent: React.FC = () => {
             console.error('Merge error:', error);
           }
         }}
+      />
+      <LogWindow
+        open={showLogWindow}
+        onClose={() => setShowLogWindow(false)}
       />
     </>
   );

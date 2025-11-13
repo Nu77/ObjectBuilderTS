@@ -7,7 +7,7 @@ import './SpriteList.css';
 
 interface SpriteListItem {
   id: number;
-  pixels?: any;
+  pixels?: Uint8Array | ArrayBuffer | Buffer | any;
 }
 
 export const SpriteList: React.FC = () => {
@@ -20,9 +20,53 @@ export const SpriteList: React.FC = () => {
   useEffect(() => {
     const handleCommand = (command: any) => {
       if (command.type === 'SetSpriteListCommand') {
-        setSprites(command.data.list || []);
-        if (command.data.selectedIds) {
-          setSelectedSpriteIds(command.data.selectedIds);
+        // Extract sprite list from command
+        // Command structure: { type, data: { selectedIds, list: SpriteData[] } }
+        // Or: { type, selectedIds, sprites: SpriteData[] }
+        let spriteList: SpriteListItem[] = [];
+        let selectedIds: number[] = [];
+        
+        if (command.data) {
+          spriteList = command.data.list || command.data.sprites || [];
+          selectedIds = command.data.selectedIds || [];
+        } else if (command.sprites) {
+          spriteList = command.sprites;
+          selectedIds = command.selectedIds || [];
+        }
+        
+        // Transform SpriteData objects to UI format
+        const transformedList = spriteList.map((sprite: any) => {
+          const id = sprite.id || 0;
+          
+          // Extract pixels - should be ArrayBuffer after Electron IPC serialization
+          let pixels = null;
+          if (sprite.pixels) {
+            // After Electron IPC, pixels should be ArrayBuffer
+            if (sprite.pixels instanceof ArrayBuffer) {
+              pixels = sprite.pixels;
+            } else if (sprite.pixels instanceof Uint8Array) {
+              pixels = sprite.pixels;
+            } else if (sprite.pixels.buffer instanceof ArrayBuffer) {
+              // Typed array view
+              pixels = sprite.pixels.buffer;
+            } else if (typeof sprite.pixels === 'object' && sprite.pixels.byteLength !== undefined) {
+              // ArrayBuffer-like object
+              pixels = sprite.pixels;
+            } else {
+              // Fallback: try to use as-is
+              pixels = sprite.pixels;
+            }
+          }
+          
+          return {
+            id,
+            pixels,
+          };
+        });
+        
+        setSprites(transformedList);
+        if (selectedIds.length > 0) {
+          setSelectedSpriteIds(selectedIds);
         }
         setLoading(false);
       }

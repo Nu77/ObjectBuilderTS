@@ -6,9 +6,15 @@ import { SpriteThumbnail } from './SpriteThumbnail';
 import './ThingList.css';
 
 interface ThingListItem {
-  id: number;
+  id?: number;
+  thing?: {
+    id: number;
+    category?: string;
+    [key: string]: any;
+  };
+  frameGroup?: any;
+  pixels?: Uint8Array | ArrayBuffer | Buffer | any;
   name?: string;
-  pixels?: any;
   spriteId?: number;
   spritePixels?: any;
 }
@@ -28,9 +34,57 @@ export const ThingList: React.FC = () => {
   useEffect(() => {
     const handleCommand = (command: any) => {
       if (command.type === 'SetThingListCommand') {
-        setThings(command.data.list || []);
-        if (command.data.selectedIds) {
-          setSelectedThingIds(command.data.selectedIds);
+        // Extract thing list from command
+        // Command structure: { type, data: { selectedIds, list: ThingListItem[] } }
+        // Or: { type, selectedIds, things: ThingListItem[] }
+        let thingList: ThingListItem[] = [];
+        let selectedIds: number[] = [];
+        
+        if (command.data) {
+          thingList = command.data.list || command.data.things || [];
+          selectedIds = command.data.selectedIds || [];
+        } else if (command.things) {
+          thingList = command.things;
+          selectedIds = command.selectedIds || [];
+        }
+        
+        // Transform ThingListItem objects to UI format
+        const transformedList = thingList.map((item: any) => {
+          // Extract ID from thing object or item itself
+          const id = item.thing?.id || item.id || 0;
+          
+          // Extract pixels - should be ArrayBuffer after Electron IPC serialization
+          let pixels = null;
+          if (item.pixels) {
+            // After Electron IPC, pixels should be ArrayBuffer
+            if (item.pixels instanceof ArrayBuffer) {
+              pixels = item.pixels;
+            } else if (item.pixels instanceof Uint8Array) {
+              pixels = item.pixels;
+            } else if (item.pixels.buffer instanceof ArrayBuffer) {
+              // Typed array view
+              pixels = item.pixels.buffer;
+            } else if (typeof item.pixels === 'object' && item.pixels.byteLength !== undefined) {
+              // ArrayBuffer-like object
+              pixels = item.pixels;
+            } else {
+              // Fallback: try to use as-is
+              pixels = item.pixels;
+            }
+          }
+          
+          return {
+            id,
+            name: item.thing?.name || item.name,
+            pixels,
+            spriteId: item.spriteId,
+            spritePixels: item.spritePixels,
+          };
+        });
+        
+        setThings(transformedList);
+        if (selectedIds.length > 0) {
+          setSelectedThingIds(selectedIds);
         }
         setLoading(false);
       }

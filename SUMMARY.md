@@ -74,6 +74,10 @@ See [DOCUMENTATION.md](./DOCUMENTATION.md) for complete documentation index.
 - Category changes automatically reload thing lists
 - ExportDialog shows selected item count
 - LoadFilesDialog improved with version loading support
+- **Sprite and Thing pixel data loading** - Fixed IPC serialization to convert ByteArray/Buffer to ArrayBuffer
+- **ThingList and SpriteList** - Now properly display sprite/thing thumbnails with pixel data
+- **PreviewCanvas** - Handles ArrayBuffer pixel data correctly for rendering
+- **File loading** - Explicitly triggers data sending after .spr/.dat files are loaded
 
 ## 🛠️ Technology Stack
 

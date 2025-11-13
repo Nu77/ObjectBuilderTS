@@ -1,5 +1,6 @@
 import React from 'react';
 import { SpriteList } from './SpriteList';
+import { Panel } from './Panel';
 import './Panel.css';
 
 interface SpritesPanelProps {
@@ -8,15 +9,14 @@ interface SpritesPanelProps {
 
 export const SpritesPanel: React.FC<SpritesPanelProps> = ({ onClose }) => {
   return (
-    <div className="panel sprites-panel">
-      <div className="panel-header">
-        <span>Sprites</span>
-        <button className="panel-close" onClick={onClose}>×</button>
-      </div>
-      <div className="panel-content">
-        <SpriteList />
-      </div>
-    </div>
+    <Panel
+      title="Sprites"
+      className="sprites-panel"
+      onClose={onClose}
+      collapsible={true}
+    >
+      <SpriteList />
+    </Panel>
   );
 };
 

@@ -42,6 +42,12 @@
 - ✅ All dialogs properly connected to backend
 - ✅ Category changes automatically reload thing lists
 - ✅ LoadFilesDialog improved with version loading support
+- ✅ Sprite and Thing pixel data loading - Fixed IPC serialization for ByteArray/Buffer to ArrayBuffer
+- ✅ ThingList and SpriteList now properly display sprite/thing thumbnails
+- ✅ PreviewCanvas handles ArrayBuffer pixel data correctly
+- ✅ Files loading triggers clientLoadComplete explicitly
+- ✅ Sprite Import - Fixed PathHelper creation and Electron IPC command handling for importing sprites from image files
+- ✅ ImportDialog properly connected to backend for sprite import functionality
 
 ## 📁 Project Structure
 

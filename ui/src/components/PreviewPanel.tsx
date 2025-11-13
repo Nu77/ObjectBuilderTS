@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStateContext } from '../contexts/AppStateContext';
 import { useWorker } from '../contexts/WorkerContext';
 import { PreviewCanvas } from './PreviewCanvas';
+import { Panel } from './Panel';
 import './Panel.css';
 
 interface PreviewPanelProps {
@@ -45,12 +46,12 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
   const frameGroup = thingData?.thing?.frameGroups?.[frameGroupType];
 
   return (
-    <div className="panel preview-panel">
-      <div className="panel-header">
-        <span>Preview</span>
-        <button className="panel-close" onClick={onClose}>×</button>
-      </div>
-      <div className="panel-content">
+    <Panel
+      title="Preview"
+      className="preview-panel"
+      onClose={onClose}
+      collapsible={true}
+    >
         <div className="preview-container">
           {thingData ? (
             <>
@@ -147,8 +148,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Panel>
   );
 };
 

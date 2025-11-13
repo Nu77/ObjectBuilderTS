@@ -33,7 +33,26 @@ export const SpriteThumbnail: React.FC<SpriteThumbnailProps> = ({
     ctx.fillRect(0, 0, size, size);
 
     try {
-      const pixelData = pixels instanceof ArrayBuffer ? new Uint8Array(pixels) : pixels;
+      // Convert various pixel data formats to Uint8Array
+      let pixelData: Uint8Array;
+      
+      if (pixels instanceof ArrayBuffer) {
+        pixelData = new Uint8Array(pixels);
+      } else if (Buffer.isBuffer && Buffer.isBuffer(pixels)) {
+        // Node.js Buffer (shouldn't happen in browser, but handle it)
+        pixelData = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
+      } else if (pixels instanceof Uint8Array) {
+        pixelData = pixels;
+      } else if (pixels && pixels.buffer instanceof ArrayBuffer) {
+        // Typed array (Uint8Array, Int8Array, etc.)
+        pixelData = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
+      } else if (Array.isArray(pixels)) {
+        // Plain array
+        pixelData = new Uint8Array(pixels);
+      } else {
+        console.warn('Unknown pixel data format:', typeof pixels);
+        return;
+      }
       
       // Check if we have valid pixel data
       if (!pixelData || pixelData.length < 4) {

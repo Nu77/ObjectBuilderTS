@@ -401,8 +401,21 @@ export class ObjectBuilderWorker extends EventEmitter {
 
         this.createStorage();
 
+        // Load things and sprites
+        // Note: load() is synchronous, so we need to check if both are loaded
+        // and manually trigger clientLoadComplete if events don't fire
         this._things!.load(this._datFile, this._version, this._extended, this._improvedAnimations, this._frameGroups);
         this._sprites!.load(this._sprFile, this._version, this._extended, this._transparency);
+        
+        // If both storages are already loaded (synchronous load),
+        // manually trigger clientLoadComplete
+        // The storageLoadHandler will also handle this, but this ensures it happens
+        if (this._things!.loaded && this._sprites!.loaded && this.clientLoaded) {
+            // Use setImmediate to ensure this happens after any event handlers
+            setImmediate(() => {
+                this.clientLoadComplete();
+            });
+        }
     }
 
     private mergeFilesCallback(datFile: string,

@@ -128,6 +128,210 @@ function createWindow(): void {
   });
 }
 
+// Serialize command data for IPC transmission
+// Converts ByteArray/Buffer objects to ArrayBuffer for proper serialization
+function serializeCommand(command: WorkerCommand): any {
+  const commandName = command.constructor.name;
+  const serialized: any = {
+    type: commandName,
+  };
+
+  // Handle different command types
+  if (commandName === 'SetThingListCommand') {
+    const cmd = command as any;
+    serialized.data = {
+      selectedIds: cmd.selectedIds || [],
+      list: (cmd.things || []).map((item: any) => serializeThingListItem(item)),
+    };
+  } else if (commandName === 'SetSpriteListCommand') {
+    const cmd = command as any;
+    serialized.data = {
+      selectedIds: cmd.selectedIds || [],
+      list: (cmd.sprites || []).map((sprite: any) => serializeSpriteData(sprite)),
+    };
+  } else if (commandName === 'SetThingDataCommand') {
+    const cmd = command as any;
+    serialized.data = serializeThingData(cmd.data || cmd.thingData);
+  } else {
+    // For other commands, serialize all properties
+    serialized.data = serializeObject(command);
+  }
+
+  return serialized;
+}
+
+// Serialize ThingListItem
+function serializeThingListItem(item: any): any {
+  const serialized: any = {
+    id: item.thing?.id || item.id || 0,
+  };
+
+  if (item.thing) {
+    serialized.thing = {
+      id: item.thing.id,
+      category: item.thing.category,
+    };
+  }
+
+  if (item.frameGroup) {
+    serialized.frameGroup = item.frameGroup;
+  }
+
+  // Convert pixels (ByteArray/Buffer) to ArrayBuffer
+  if (item.pixels) {
+    serialized.pixels = convertToArrayBuffer(item.pixels);
+  }
+
+  return serialized;
+}
+
+// Serialize SpriteData
+function serializeSpriteData(sprite: any): any {
+  const serialized: any = {
+    id: sprite.id || 0,
+  };
+
+  // Convert pixels (Buffer) to ArrayBuffer
+  if (sprite.pixels) {
+    serialized.pixels = convertToArrayBuffer(sprite.pixels);
+  }
+
+  return serialized;
+}
+
+// Serialize ThingData
+function serializeThingData(thingData: any): any {
+  if (!thingData) return null;
+
+  const serialized: any = {
+    id: thingData.id,
+    category: thingData.category,
+  };
+
+  if (thingData.thing) {
+    serialized.thing = thingData.thing;
+  }
+
+  // Serialize sprites Map
+  if (thingData.sprites) {
+    if (thingData.sprites instanceof Map) {
+      const spritesMap: any = {};
+      thingData.sprites.forEach((sprites: any[], groupType: number) => {
+        spritesMap[groupType] = sprites.map((sprite: any) => ({
+          id: sprite.id,
+          pixels: convertToArrayBuffer(sprite.pixels),
+        }));
+      });
+      serialized.sprites = spritesMap;
+    } else {
+      serialized.sprites = thingData.sprites;
+    }
+  }
+
+  return serialized;
+}
+
+// Convert ByteArray or Buffer to ArrayBuffer for IPC
+function convertToArrayBuffer(data: any): ArrayBuffer | null {
+  if (!data) return null;
+
+  try {
+    // If it's already an ArrayBuffer (not SharedArrayBuffer)
+    if (data instanceof ArrayBuffer) {
+      return data;
+    }
+
+    // Helper to create a new ArrayBuffer from any buffer-like object
+    const createArrayBuffer = (buffer: Buffer | Uint8Array | ArrayBuffer): ArrayBuffer => {
+      let uint8Array: Uint8Array;
+      if (Buffer.isBuffer(buffer)) {
+        uint8Array = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      } else if (buffer instanceof Uint8Array) {
+        uint8Array = buffer;
+      } else if (buffer instanceof ArrayBuffer) {
+        uint8Array = new Uint8Array(buffer);
+      } else {
+        throw new Error('Unsupported buffer type');
+      }
+      
+      // Create a new ArrayBuffer by copying
+      const newBuffer = new ArrayBuffer(uint8Array.length);
+      new Uint8Array(newBuffer).set(uint8Array);
+      return newBuffer;
+    };
+
+    // If it's a Buffer
+    if (Buffer.isBuffer(data)) {
+      return createArrayBuffer(data);
+    }
+
+    // If it's a ByteArray with toBuffer method
+    if (data.toBuffer && typeof data.toBuffer === 'function') {
+      const buffer = data.toBuffer();
+      if (Buffer.isBuffer(buffer)) {
+        return createArrayBuffer(buffer);
+      }
+    }
+
+    // If it's a Uint8Array or similar
+    if (data instanceof Uint8Array || (data.buffer && data.buffer instanceof ArrayBuffer)) {
+      return createArrayBuffer(data);
+    }
+
+    // Try to convert to Buffer first
+    if (typeof data === 'object' && data.length !== undefined) {
+      const buffer = Buffer.from(data);
+      return createArrayBuffer(buffer);
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error converting to ArrayBuffer:', error);
+    return null;
+  }
+}
+
+// Serialize any object, converting ByteArray/Buffer to ArrayBuffer
+function serializeObject(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => serializeObject(item));
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    // Check if it's a Buffer or ByteArray
+    if (Buffer.isBuffer(obj) || (obj.toBuffer && typeof obj.toBuffer === 'function')) {
+      return convertToArrayBuffer(obj);
+    }
+
+    // Handle Map
+    if (obj instanceof Map) {
+      const result: any = {};
+      obj.forEach((value, key) => {
+        result[key] = serializeObject(value);
+      });
+      return result;
+    }
+
+    // Handle regular objects
+    const result: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        result[key] = serializeObject(obj[key]);
+      }
+    }
+    return result;
+  }
+
+  // Primitive types
+  return obj;
+}
+
 // IPC Handlers - Set up BEFORE backend initialization so they're always available
 function setupIpcHandlers(): void {
   // Send command to backend
@@ -145,7 +349,23 @@ function setupIpcHandlers(): void {
       }
 
       // Create command instance from data
-      const command = new CommandClass(...Object.values(commandData).filter((_, i) => i !== 0));
+      // Handle special cases for commands that need PathHelper objects
+      let command;
+      if (commandData.type === 'ImportSpritesFromFileCommand' || commandData.type === 'ImportThingsFromFilesCommand') {
+        // Convert plain objects to PathHelper instances
+        const PathHelper = require(path.join(__dirname, '../otlib/loaders/PathHelper')).PathHelper;
+        const pathHelpers = (commandData.list || []).map((item: any) => {
+          if (item instanceof PathHelper) {
+            return item;
+          }
+          return new PathHelper(item.nativePath || item.path, item.id || 0);
+        });
+        command = new CommandClass(pathHelpers);
+      } else {
+        // For other commands, use the original approach
+        command = new CommandClass(...Object.values(commandData).filter((_, i) => i !== 0));
+      }
+      
       (backendApp as any).communicator.handleCommand(command);
       
       return { success: true };
@@ -242,11 +462,11 @@ async function initializeBackend(): Promise<void> {
       if (backendApp && (backendApp as any).communicator) {
         (backendApp as any).communicator.on('command', (command: WorkerCommand) => {
           if (mainWindow && !mainWindow.isDestroyed()) {
+            // Serialize command data for IPC (convert ByteArray/Buffer to ArrayBuffer)
+            const serializedCommand = serializeCommand(command);
+            
             // Send command to renderer process
-            mainWindow.webContents.send('worker:command', {
-              type: command.constructor.name,
-              data: command,
-            });
+            mainWindow.webContents.send('worker:command', serializedCommand);
           }
         });
       }
@@ -426,6 +646,20 @@ function createMenu(): void {
           click: () => {
             if (mainWindow) {
               mainWindow.webContents.send('menu-action', 'tools-find');
+            }
+          },
+        },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        {
+          label: 'Log Window',
+          accelerator: 'CmdOrCtrl+L',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'window-log');
             }
           },
         },
