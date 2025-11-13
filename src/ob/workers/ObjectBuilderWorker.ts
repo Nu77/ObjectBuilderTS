@@ -104,6 +104,7 @@ import { FrameGroupsConverter } from "../../otlib/utils/FrameGroupsConverter";
 import { SpritesFinder } from "../utils/SpritesFinder";
 import { SpritesOptimizer } from "../../otlib/utils/SpritesOptimizer";
 import { SpriteDataLoader } from "../../otlib/loaders/SpriteDataLoader";
+import { Sprite } from "../../otlib/sprites/Sprite";
 import { SaveHelper } from "../utils/SaveHelper";
 import { ImageCodec } from "../../otlib/utils/ImageCodec";
 import { OTFormat } from "../../otlib/utils/OTFormat";
@@ -1328,14 +1329,69 @@ export class ObjectBuilderWorker extends EventEmitter {
 
         if (list.length === 0) return;
 
+        // Ensure sprite storage is initialized
+        if (!this._sprites) {
+            // Create sprite storage if it doesn't exist
+            // Note: SpriteStorage doesn't require settings, only ThingTypeStorage does
+            this._sprites = new SpriteStorage();
+            this._sprites.on(StorageEvent.LOAD, this.storageLoadHandler.bind(this));
+            this._sprites.on(StorageEvent.CHANGE, this.storageChangeHandler.bind(this));
+            this._sprites.on(ProgressEvent.PROGRESS, this.spritesProgressHandler.bind(this));
+            this._sprites.on("error", this.spritesErrorHandler.bind(this));
+            
+            // Initialize storage - we need a version for createNew, but if we don't have one,
+            // we'll initialize it manually in the complete handler
+            if (this._version) {
+                if (!this._sprites.loaded) {
+                    this._sprites.createNew(this._version, this._extended, this._transparency);
+                }
+            } else {
+                // If no version, we'll need to initialize manually
+                // Use current extended and transparency settings
+                (this._sprites as any)._extended = this._extended;
+                (this._sprites as any)._transparency = this._transparency;
+                (this._sprites as any)._sprites = new Map();
+                (this._sprites as any)._spritesCount = 0;
+                (this._sprites as any)._blankSprite = new Sprite(0, this._transparency);
+                (this._sprites as any)._alertSprite = new Sprite(0xFFFFFFFF, this._transparency);
+                (this._sprites as any)._sprites.set(0, (this._sprites as any)._blankSprite);
+                (this._sprites as any)._loaded = true;
+            }
+        }
+
         const loader = new SpriteDataLoader();
         
-        // Set version and settings for SPR file loading
+        // Determine correct settings for SPR file loading
+        // For old versions like 8.0, extended should be false and transparency should be true
+        let extended = this._extended;
+        let transparency = this._transparency;
+        
         if (this._version) {
             loader.setVersion(this._version);
+            // Override extended based on version (versions < 960 are not extended)
+            extended = this._version.value >= 960;
+            // For old versions, default transparency to true if not explicitly set
+            if (this._version.value < 960 && !this._transparency) {
+                transparency = true;
+            }
+        } else {
+            // If no version, use safe defaults for old versions
+            extended = false;
+            transparency = true;
         }
-        loader.setExtended(this._extended);
-        loader.setTransparency(this._transparency);
+        
+        loader.setExtended(extended);
+        loader.setTransparency(transparency);
+        
+        // Ensure storage transparency matches loader settings
+        // This is important for replaceSprites which uses storage._transparency
+        if (this._sprites) {
+            (this._sprites as any)._transparency = transparency;
+            (this._sprites as any)._extended = extended;
+        }
+        
+        // Store settings for error reporting
+        const loadSettings = { extended, transparency, version: this._version?.valueStr || "unknown" };
         
         loader.on("progress", (event: ProgressEvent) => {
             this.sendCommand(new ProgressCommand(event.id, event.loaded, event.total, Resources.getString("loading")));
@@ -1346,24 +1402,64 @@ export class ObjectBuilderWorker extends EventEmitter {
 
             const spriteDataList = loader.spriteDataList;
             const length = spriteDataList.length;
-            const sprites: Buffer[] = [];
+            
+            if (length === 0) {
+                console.warn("No sprites were loaded from the SPR file");
+                return;
+            }
+
+            if (!this._sprites) {
+                console.error("Sprite storage is not initialized");
+                return;
+            }
+
+            console.log(`Loaded ${length} sprites from SPR file, max ID: ${Math.max(...spriteDataList.map(s => s.id))}`);
 
             // Sort by id descending
             spriteDataList.sort((a, b) => b.id - a.id);
 
-            for (let i = 0; i < length; i++) {
-                const pixels = spriteDataList[i].pixels;
-                if (pixels) {
-                    sprites.push(pixels);
-                }
+            // Find the maximum sprite ID to update spritesCount
+            const maxSpriteId = Math.max(...spriteDataList.map(s => s.id));
+            
+            // Update spritesCount to accommodate the highest sprite ID
+            // This is necessary because replaceSprites doesn't update spritesCount automatically
+            if (maxSpriteId > this._sprites.spritesCount) {
+                (this._sprites as any)._spritesCount = maxSpriteId;
             }
 
-            this.addSpritesCallback(sprites);
+            // Use replaceSprites to preserve sprite IDs from the SPR file
+            // This ensures sprites are added/updated with their original IDs
+            const result = this._sprites.replaceSprites(spriteDataList);
+            if (!result.done) {
+                console.error(result.message);
+                return;
+            }
+
+            // Ensure spritesCount is updated after replace
+            // replaceSprites might add new sprites that weren't in the storage
+            if (maxSpriteId > this._sprites.spritesCount) {
+                (this._sprites as any)._spritesCount = maxSpriteId;
+            }
+
+            // Send changes to application
+            const ids: number[] = [];
+            for (let i = 0; i < length; i++) {
+                ids.push(spriteDataList[i].id);
+            }
+
+            if (ids.length > 0) {
+                this.sendSpriteList([ids[0]]);
+            }
         });
 
         loader.on("error", (error: Error) => {
             this.sendCommand(new HideProgressBarCommand(ProgressBarID.DEFAULT));
-            console.error(error);
+            console.error("Sprite import error:", error);
+            console.error("Error details:", {
+                message: error.message,
+                stack: error.stack,
+                ...loadSettings
+            });
         });
 
         loader.loadFiles(list);

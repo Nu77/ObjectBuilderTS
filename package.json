@@ -24,6 +24,7 @@
   "dependencies": {
     "cairo": "^0.1.0-alpha.3",
     "canvas": "^3.2.0",
+    "deasync": "^0.1.31",
     "electron": "^27.0.0",
     "lzma-native": "^8.0.0",
     "react": "^18.2.0",

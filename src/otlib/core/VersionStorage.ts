@@ -71,12 +71,37 @@ export class VersionStorage extends EventEmitter implements IVersionStorage {
         try {
             const xmlContent = fs.readFileSync(filePath, "utf-8");
             
-            // Use synchronous XML parsing
+            // Use synchronous XML parsing with xml2js
+            // xml2js.parseStringSync doesn't exist, so we use parseString with util.promisify and deasync
             const xml2js = require("xml2js");
-            const parser = new xml2js.Parser();
-            const result = parser.parseStringSync(xmlContent);
-
-            if (result.versions === undefined || !result.versions.version) {
+            const util = require("util");
+            const deasync = require("deasync");
+            const parser = new xml2js.Parser({ explicitArray: false });
+            const parseString = util.promisify(parser.parseString.bind(parser));
+            
+            // Use deasync to make the async parseString synchronous
+            let result: any = null;
+            let parseError: Error | null = null;
+            let completed = false;
+            
+            parseString(xmlContent)
+                .then((parsed: any) => {
+                    result = parsed;
+                    completed = true;
+                })
+                .catch((err: Error) => {
+                    parseError = err;
+                    completed = true;
+                });
+            
+            // Wait synchronously using deasync
+            deasync.loopWhile(() => !completed);
+            
+            if (parseError) {
+                throw parseError;
+            }
+            
+            if (!result || result.versions === undefined || !result.versions.version) {
                 throw new Error("Invalid versions XML structure.");
             }
 

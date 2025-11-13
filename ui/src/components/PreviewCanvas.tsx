@@ -11,6 +11,9 @@ interface PreviewCanvasProps {
   patternY?: number;
   patternZ?: number;
   animate?: boolean;
+  zoom?: number;
+  currentFrame?: number;
+  onFrameChange?: (frame: number) => void;
 }
 
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
@@ -22,11 +25,24 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   patternY = 0,
   patternZ = 0,
   animate = false,
+  zoom = 1,
+  currentFrame: currentFrameProp,
+  onFrameChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const [internalFrame, setInternalFrame] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Use prop frame when not animating, internal frame when animating
+  const currentFrame = animate ? internalFrame : (currentFrameProp !== undefined ? currentFrameProp : 0);
+  
+  // Sync internal frame with prop when not animating
+  useEffect(() => {
+    if (!animate && currentFrameProp !== undefined) {
+      setInternalFrame(currentFrameProp);
+    }
+  }, [currentFrameProp, animate]);
 
   useEffect(() => {
     if (!thingData || !canvasRef.current) {
@@ -48,7 +64,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      setCurrentFrame(0);
+      setInternalFrame(0);
       return;
     }
 
@@ -56,12 +72,12 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     const frameGroup = thingData.thing?.frameGroups?.[frameGroupType];
     if (!frameGroup || !frameGroup.isAnimation || frameGroup.frames <= 1) {
       setIsAnimating(false);
-      setCurrentFrame(0);
+      setInternalFrame(0);
       return;
     }
 
     setIsAnimating(true);
-    let frame = frameGroup.startFrame || 0;
+    let frame = internalFrame;
     let lastTime = performance.now();
     let accumulatedTime = 0;
     let loopCount = 0;
@@ -105,7 +121,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           }
         }
         
-        setCurrentFrame(frame);
+        setInternalFrame(frame);
       }
 
       animationFrameRef.current = requestAnimationFrame(animateFrame);
@@ -358,14 +374,34 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     ctx.fillText('No preview available', width / 2, height / 2);
   };
 
+  const displayWidth = width * zoom;
+  const displayHeight = height * zoom;
+
   return (
     <div className="preview-canvas-container">
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        className="preview-canvas"
-      />
+      <div 
+        className="preview-canvas-wrapper"
+        style={{
+          width: displayWidth,
+          height: displayHeight,
+          maxWidth: '100%',
+          maxHeight: '100%',
+          overflow: 'auto',
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          width={width}
+          height={height}
+          className="preview-canvas"
+          style={{
+            width: displayWidth,
+            height: displayHeight,
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left',
+          }}
+        />
+      </div>
       {isAnimating && (
         <div className="preview-animation-indicator" title="Animation playing">
           ●

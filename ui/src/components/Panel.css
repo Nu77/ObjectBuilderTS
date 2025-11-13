@@ -152,10 +152,13 @@
   font-size: 11px;
 }
 
-.preview-control-group label {
+.preview-control-group > label {
   color: var(--text-secondary);
   min-width: 60px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
 }
 
 .preview-control-group input[type="number"] {
@@ -182,5 +185,35 @@
 .preview-control-group input[type="checkbox"] + span {
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.preview-control-group select {
+  flex: 1;
+  padding: 4px 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preview-control-group select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.preview-control-group input[type="range"] {
+  flex: 1;
+  cursor: pointer;
+}
+
+.preview-control-group label:has(input[type="range"]) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: flex-start;
+  min-width: 0;
 }
 

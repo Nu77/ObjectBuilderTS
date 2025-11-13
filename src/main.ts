@@ -27,7 +27,11 @@ export class ObjectBuilderApp {
     private _initialized: boolean = false;
 
     constructor() {
-        this.initialize();
+        // Initialize asynchronously to avoid blocking
+        // This allows Electron window to be created first
+        setImmediate(() => {
+            this.initialize();
+        });
     }
 
     private initialize(): void {
@@ -112,14 +116,46 @@ export class ObjectBuilderApp {
         this._communicator.sendCommand(new SettingsCommand(this._settings));
 
         // Load versions
-        const versionsPath = path.join(__dirname, "../firstRun/versions.xml");
-        if (fs.existsSync(versionsPath)) {
-            if (this._versionStorage) {
-                this._versionStorage.load(versionsPath);
-                this._communicator.sendCommand(new LoadVersionsCommand(versionsPath));
+        // Try multiple possible paths:
+        // 1. From dist/electron/electron: ../../firstRun/versions.xml -> dist/firstRun/versions.xml
+        // 2. From dist/main.js: ../firstRun/versions.xml -> firstRun/versions.xml (source)
+        // 3. From dist/src/main.js: ../firstRun/versions.xml -> src/firstRun/versions.xml (source)
+        // 4. Absolute path from project root
+        let versionsPath: string | null = null;
+        const possiblePaths = [
+            path.join(__dirname, "../../firstRun/versions.xml"), // From dist/electron/electron
+            path.join(__dirname, "../firstRun/versions.xml"),  // From dist/main.js or dist/src/main.js
+            path.join(__dirname, "../../src/firstRun/versions.xml"), // From dist/electron/electron to source
+            path.join(process.cwd(), "src/firstRun/versions.xml"), // From project root
+            path.join(process.cwd(), "firstRun/versions.xml"), // From project root (if copied)
+        ];
+
+        for (const testPath of possiblePaths) {
+            if (fs.existsSync(testPath)) {
+                versionsPath = testPath;
+                break;
+            }
+        }
+
+        if (versionsPath && fs.existsSync(versionsPath)) {
+            if (this._versionStorage && this._communicator) {
+                // Load versions asynchronously to avoid blocking the event loop
+                // This allows the Electron window to appear immediately
+                const storage = this._versionStorage;
+                const communicator = this._communicator;
+                const path = versionsPath;
+                setImmediate(() => {
+                    try {
+                        storage.load(path);
+                        communicator.sendCommand(new LoadVersionsCommand(path));
+                        console.log("Loaded versions from:", path);
+                    } catch (error: any) {
+                        console.error("Failed to load versions:", error);
+                    }
+                });
             }
         } else {
-            console.warn("versions.xml not found at:", versionsPath);
+            console.warn("versions.xml not found. Tried paths:", possiblePaths);
         }
 
         // Load sprite dimensions

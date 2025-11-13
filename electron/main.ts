@@ -116,19 +116,32 @@ function createWindow(): void {
   // Show window when ready (simplified since hardware acceleration is disabled)
   // With hardware acceleration disabled, GPU process won't crash, so we can use simpler timing
   mainWindow.once('ready-to-show', () => {
+    console.log('Window ready to show');
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show();
+      console.log('Window shown');
     }
   });
 
   // Fallback: show after page loads if ready-to-show didn't fire
   mainWindow.webContents.once('did-finish-load', () => {
+    console.log('Page finished loading');
     setTimeout(() => {
       if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
         mainWindow.show();
+        console.log('Window shown (fallback)');
       }
     }, 50);
   });
+  
+  // Immediate show attempt (for development)
+  // This ensures window appears even if events don't fire
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+      console.log('Window shown (timeout fallback)');
+    }
+  }, 100);
 
   // Save window state on move/resize
   mainWindow.on('moved', saveWindowState);
@@ -381,7 +394,8 @@ function setupIpcHandlers(): void {
       let command;
       if (commandData.type === 'ImportSpritesFromFileCommand' || commandData.type === 'ImportThingsFromFilesCommand') {
         // Convert plain objects to PathHelper instances
-        const PathHelper = require(path.join(__dirname, '../otlib/loaders/PathHelper')).PathHelper;
+        // __dirname is dist/electron/electron, so go up two levels to dist, then to otlib
+        const PathHelper = require(path.join(__dirname, '../../otlib/loaders/PathHelper')).PathHelper;
         const pathHelpers = (commandData.list || []).map((item: any) => {
           if (item instanceof PathHelper) {
             return item;
@@ -409,7 +423,8 @@ function setupIpcHandlers(): void {
     // This is a simplified version - in production, use a command registry
     try {
       // Use path relative to dist directory
-      const commandsPath = path.join(__dirname, '../ob/commands');
+      // __dirname is dist/electron/electron, so go up two levels to dist, then to ob/commands
+      const commandsPath = path.join(__dirname, '../../ob/commands');
       const commandMap: { [key: string]: string } = {
         'LoadFilesCommand': 'files/LoadFilesCommand',
         'CreateNewFilesCommand': 'files/CreateNewFilesCommand',
@@ -482,7 +497,18 @@ async function initializeBackend(): Promise<void> {
   try {
     // Import and initialize backend
     // Use require for CommonJS modules in Electron
-    const mainModule = require(path.join(__dirname, '../main.js'));
+    // __dirname is dist/electron/electron, so we need to go up two levels to dist/main.js
+    // The backend main.js is compiled to dist/main.js (from src/main.ts with rootDir: "./src")
+    const mainPath = path.join(__dirname, '../../main.js');
+    console.log('Looking for backend at:', mainPath);
+    console.log('__dirname is:', __dirname);
+    console.log('Path exists:', fs.existsSync(mainPath));
+    
+    if (!fs.existsSync(mainPath)) {
+      throw new Error(`Backend main.js not found at: ${mainPath}\n\nPlease run: npm run build:backend`);
+    }
+    
+    const mainModule = require(mainPath);
     const ObjectBuilderApp = mainModule.ObjectBuilderApp || mainModule.default;
     if (ObjectBuilderApp) {
       backendApp = new ObjectBuilderApp();
@@ -535,12 +561,17 @@ app.whenReady().then(async () => {
   // This ensures handlers are always available even if backend fails
   setupIpcHandlers();
   
-  // Then initialize backend
-  await initializeBackend();
-  
-  // Create window and menu
+  // Create window and menu FIRST so UI appears immediately
+  // Backend initialization can happen in the background
   createWindow();
   createMenu();
+  
+  // Then initialize backend asynchronously (don't await - let it happen in background)
+  // This prevents blocking the UI from appearing
+  initializeBackend().catch((error) => {
+    console.error('Backend initialization error:', error);
+    // Window is already created, so user can see the error if needed
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

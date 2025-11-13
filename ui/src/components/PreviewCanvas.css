@@ -39,3 +39,112 @@
   }
 }
 
+.preview-canvas-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.preview-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.preview-zoom-btn {
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 2rem;
+  transition: background-color 0.2s;
+}
+
+.preview-zoom-btn:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+.preview-zoom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-zoom-value {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.preview-info {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.preview-info-item {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.preview-info-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.preview-info-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.preview-frame-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.preview-frame-btn {
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.preview-frame-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.preview-frame-input {
+  width: 3rem;
+  padding: 0.25rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.preview-pattern-slider {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.preview-canvas-section {
+  margin-bottom: 1rem;
+}
+
