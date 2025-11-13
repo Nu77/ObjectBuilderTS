@@ -1,0 +1,44 @@
+.hotkey-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background-color: #3a3a3a;
+  color: #fff;
+  font-size: 13px;
+  font-family: monospace;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.hotkey-input:hover:not(:disabled) {
+  border-color: #777;
+  background-color: #404040;
+}
+
+.hotkey-input:focus {
+  outline: none;
+  border-color: #4a9eff;
+  background-color: #404040;
+}
+
+.hotkey-input.capturing {
+  border-color: #4a9eff;
+  background-color: #2a4a6a;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.hotkey-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(74, 158, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(74, 158, 255, 0);
+  }
+}
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWorker } from '../contexts/WorkerContext';
 import { useProgress } from '../contexts/ProgressContext';
 import { useToast } from '../hooks/useToast';
@@ -19,6 +19,9 @@ import { FileInfoPanel } from './FileInfoPanel';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { ProgressProvider } from '../contexts/ProgressContext';
 import { CommandFactory } from '../services/CommandFactory';
+import { getHotkeyManager } from '../services/HotkeyManager';
+import { registerDefaultHotkeys } from '../services/HotkeyRegistration';
+import { useHotkey } from '../hooks/useHotkey';
 import './MainWindow.css';
 
 const MainWindowContent: React.FC = () => {
@@ -38,6 +41,46 @@ const MainWindowContent: React.FC = () => {
   const [showLogWindow, setShowLogWindow] = useState(false);
   const [showFileInfoPanel, setShowFileInfoPanel] = useState(true);
   const [exportType, setExportType] = useState<'things' | 'sprites'>('things');
+  const windowRef = useRef<HTMLDivElement>(null);
+
+  // Initialize hotkey system
+  useEffect(() => {
+    registerDefaultHotkeys();
+    const manager = getHotkeyManager();
+
+    // Load hotkeys from settings (will be loaded when settings are received)
+    // For now, just register the defaults
+
+    // Handle keyboard events
+    const handleKeyDown = (event: KeyboardEvent) => {
+      manager.handleKeyDown(event);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Register hotkey handlers
+  useHotkey('VIEW_PREVIEW', () => setShowPreviewPanel(prev => !prev));
+  useHotkey('VIEW_OBJECTS', () => setShowThingsPanel(prev => !prev));
+  useHotkey('VIEW_SPRITES', () => setShowSpritesPanel(prev => !prev));
+  useHotkey('VIEW_FILE_INFO', () => setShowFileInfoPanel(prev => !prev));
+  useHotkey('TOOLS_FIND', () => setShowFindDialog(true));
+  useHotkey('FILE_IMPORT', () => setShowImportDialog(true));
+  useHotkey('FILE_EXPORT', () => {
+    if (selectedThingIds.length > 0) {
+      setExportType('things');
+    } else if (selectedSpriteIds.length > 0) {
+      setExportType('sprites');
+    }
+    setShowExportDialog(true);
+  });
+  useHotkey('FILE_MERGE', () => setShowMergeDialog(true));
+  useHotkey('WINDOW_PREFERENCES', () => setShowPreferencesDialog(true));
+  useHotkey('WINDOW_LOG', () => setShowLogWindow(true));
+  useHotkey('WINDOW_ABOUT', () => setShowAboutDialog(true));
 
   // Listen for menu actions
   useEffect(() => {

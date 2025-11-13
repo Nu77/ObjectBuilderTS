@@ -180,5 +180,26 @@ export class CommandFactory {
       type: 'UnloadFilesCommand',
     };
   }
+
+  static createCompileAsCommand(
+    datFile: string,
+    sprFile: string,
+    version: any,
+    extended: boolean,
+    transparency: boolean,
+    improvedAnimations: boolean,
+    frameGroups: boolean
+  ): CommandData {
+    return {
+      type: 'CompileAsCommand',
+      datFile,
+      sprFile,
+      version,
+      extended,
+      transparency,
+      improvedAnimations,
+      frameGroups,
+    };
+  }
 }
 

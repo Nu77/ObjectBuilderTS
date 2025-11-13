@@ -239,16 +239,37 @@ export const Toolbar: React.FC = () => {
   }) => {
     try {
       showProgress('Compiling project...');
-      // TODO: If useCustomLocation, use CompileAsCommand instead
-      // For now, just use CompileCommand
-      const command = CommandFactory.createCompileCommand();
-      const result = await worker.sendCommand(command);
-      hideProgress();
-      if (result.success) {
-        showSuccess('Project compiled successfully');
-        setCompileDialogOpen(false);
+      
+      if (options.useCustomLocation && options.datFile && options.sprFile && clientInfo) {
+        // Use CompileAsCommand for custom location
+        const command = CommandFactory.createCompileAsCommand(
+          options.datFile,
+          options.sprFile,
+          clientInfo.version || { id: 0, name: 'Unknown' },
+          clientInfo.extended || false,
+          clientInfo.transparency || false,
+          clientInfo.improvedAnimations || false,
+          clientInfo.frameGroups || false
+        );
+        const result = await worker.sendCommand(command);
+        hideProgress();
+        if (result.success) {
+          showSuccess('Project compiled successfully');
+          setCompileDialogOpen(false);
+        } else {
+          showError(result.error || 'Failed to compile project');
+        }
       } else {
-        showError(result.error || 'Failed to compile project');
+        // Use regular CompileCommand for default location
+        const command = CommandFactory.createCompileCommand();
+        const result = await worker.sendCommand(command);
+        hideProgress();
+        if (result.success) {
+          showSuccess('Project compiled successfully');
+          setCompileDialogOpen(false);
+        } else {
+          showError(result.error || 'Failed to compile project');
+        }
       }
     } catch (error: any) {
       hideProgress();
