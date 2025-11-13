@@ -17,6 +17,8 @@ import { MergeFilesDialog } from './MergeFilesDialog';
 import { LogWindow } from './LogWindow';
 import { FileInfoPanel } from './FileInfoPanel';
 import { ObjectViewer } from './ObjectViewer';
+import { AnimationEditor } from './AnimationEditor/AnimationEditor';
+import { Button } from './Button';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { ProgressProvider } from '../contexts/ProgressContext';
 import { CommandFactory } from '../services/CommandFactory';
@@ -42,6 +44,7 @@ const MainWindowContent: React.FC = () => {
   const [showLogWindow, setShowLogWindow] = useState(false);
   const [showFileInfoPanel, setShowFileInfoPanel] = useState(false); // Off by default
   const [showObjectViewer, setShowObjectViewer] = useState(false);
+  const [showAnimationEditor, setShowAnimationEditor] = useState(false);
   const [exportType, setExportType] = useState<'things' | 'sprites'>('things');
   const windowRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +86,7 @@ const MainWindowContent: React.FC = () => {
   useHotkey('WINDOW_PREFERENCES', () => setShowPreferencesDialog(true));
   useHotkey('WINDOW_LOG', () => setShowLogWindow(true));
   useHotkey('WINDOW_ABOUT', () => setShowAboutDialog(true));
+  useHotkey('TOOLS_ANIMATION_EDITOR', () => setShowAnimationEditor(true));
 
   // Listen for menu actions
   useEffect(() => {
@@ -108,6 +112,9 @@ const MainWindowContent: React.FC = () => {
           break;
         case 'tools-object-viewer':
           setShowObjectViewer(true);
+          break;
+        case 'tools-animation-editor':
+          setShowAnimationEditor(true);
           break;
         case 'file-import':
           setShowImportDialog(true);
@@ -330,6 +337,21 @@ const MainWindowContent: React.FC = () => {
             </div>
             <div className="object-viewer-content-wrapper">
               <ObjectViewer onClose={() => setShowObjectViewer(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+      {showAnimationEditor && (
+        <div className="object-viewer-overlay">
+          <div className="object-viewer-container">
+            <div className="object-viewer-header">
+              <h2>Animation Editor</h2>
+              <Button variant="secondary" onClick={() => setShowAnimationEditor(false)}>
+                Close
+              </Button>
+            </div>
+            <div className="object-viewer-content-wrapper">
+              <AnimationEditor onClose={() => setShowAnimationEditor(false)} />
             </div>
           </div>
         </div>

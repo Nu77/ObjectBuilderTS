@@ -1,0 +1,239 @@
+.animation-editor {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+	background-color: #494949;
+	color: #ffffff;
+	font-size: 11px;
+}
+
+.animation-editor-content {
+	display: flex;
+	flex: 1;
+	overflow: hidden;
+}
+
+.animation-editor-controls {
+	width: 300px;
+	min-width: 245px;
+	max-width: 300px;
+	padding: 10px;
+	background-color: #3a3a3a;
+	border-right: 1px solid #272727;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.control-group {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.control-group label {
+	font-weight: 500;
+	margin-bottom: 5px;
+}
+
+.preview-container {
+	width: 100%;
+	height: 200px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #2a2a2a;
+	border: 1px solid #272727;
+	border-radius: 4px;
+}
+
+.preview-placeholder {
+	color: #888;
+	font-size: 12px;
+}
+
+.property-grid {
+	display: grid;
+	grid-template-columns: 1fr 2fr;
+	gap: 8px;
+	align-items: center;
+}
+
+.property-grid label {
+	text-align: right;
+	font-weight: normal;
+}
+
+.property-grid input,
+.property-grid select {
+	padding: 4px 8px;
+	background-color: #2a2a2a;
+	border: 1px solid #272727;
+	border-radius: 3px;
+	color: #ffffff;
+	font-size: 11px;
+}
+
+.property-grid input:focus,
+.property-grid select:focus {
+	outline: none;
+	border-color: #4a9eff;
+}
+
+.animation-editor-image-area {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: auto;
+	background-color: #494949;
+	position: relative;
+	background-image:
+		linear-gradient(45deg, #535353 25%, transparent 25%),
+		linear-gradient(-45deg, #535353 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, #535353 75%),
+		linear-gradient(-45deg, transparent 75%, #535353 75%);
+	background-size: 20px 20px;
+	background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.image-container {
+	position: relative;
+	display: inline-block;
+}
+
+.image-container img {
+	display: block;
+	user-select: none;
+}
+
+.grid-overlay {
+	position: absolute;
+	border: 2px solid #00ff00;
+	box-sizing: border-box;
+	cursor: move;
+	pointer-events: all;
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+.grid-overlay::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image:
+		linear-gradient(to right, rgba(0, 255, 0, 0.3) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(0, 255, 0, 0.3) 1px, transparent 1px);
+	background-size: var(--frame-width, 32px) var(--frame-height, 32px);
+}
+
+.image-placeholder {
+	color: #888;
+	font-size: 14px;
+	text-align: center;
+	padding: 40px;
+}
+
+.animation-editor-frames {
+	height: 155px;
+	display: flex;
+	flex-direction: column;
+	border-top: 1px solid #272727;
+	background-color: #494949;
+}
+
+.frames-list {
+	flex: 1;
+	display: flex;
+	gap: 5px;
+	padding: 10px;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.frame-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+	cursor: pointer;
+	padding: 5px;
+	border: 2px solid transparent;
+	border-radius: 4px;
+	min-width: 80px;
+	transition: border-color 0.2s;
+}
+
+.frame-item:hover {
+	border-color: #6a6a6a;
+}
+
+.frame-item.selected {
+	border-color: #4a9eff;
+	background-color: rgba(74, 158, 255, 0.1);
+}
+
+.frame-thumbnail {
+	width: 64px;
+	height: 64px;
+	background-color: #2a2a2a;
+	border: 1px solid #272727;
+	border-radius: 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.frame-number {
+	font-size: 10px;
+	color: #aaa;
+}
+
+.frames-empty {
+	padding: 20px;
+	text-align: center;
+	color: #888;
+	font-size: 12px;
+}
+
+.frames-controls {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	padding: 5px;
+	border-top: 1px solid #272727;
+	background-color: #3a3a3a;
+}
+
+/* Scrollbar styling */
+.animation-editor-controls::-webkit-scrollbar,
+.animation-editor-image-area::-webkit-scrollbar,
+.frames-list::-webkit-scrollbar {
+	width: 12px;
+	height: 12px;
+}
+
+.animation-editor-controls::-webkit-scrollbar-track,
+.animation-editor-image-area::-webkit-scrollbar-track,
+.frames-list::-webkit-scrollbar-track {
+	background: #2a2a2a;
+}
+
+.animation-editor-controls::-webkit-scrollbar-thumb,
+.animation-editor-image-area::-webkit-scrollbar-thumb,
+.frames-list::-webkit-scrollbar-thumb {
+	background: #5a5a5a;
+	border-radius: 6px;
+}
+
+.animation-editor-controls::-webkit-scrollbar-thumb:hover,
+.animation-editor-image-area::-webkit-scrollbar-thumb:hover,
+.frames-list::-webkit-scrollbar-thumb:hover {
+	background: #6a6a6a;
+}
+
