@@ -97,13 +97,13 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 
 ### Thing List
 - 🟡 **ThingList** - Basic list, missing:
-  - ❌ Virtual scrolling for large lists
+  - ✅ Virtual scrolling for large lists
   - ❌ Advanced filtering
   - ❌ Sorting options
   - ❌ Group by category
   - ❌ Search within list
-  - ❌ Context menu
-  - ❌ Multi-select
+  - ✅ Context menu
+  - ✅ Multi-select
 
 ---
 
@@ -336,14 +336,14 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 
 ## 📊 Implementation Progress
 
-**Overall Completion: ~85%**
+**Overall Completion: ~87%**
 
 - **Backend**: 100% ✅
-- **Core UI**: 95% ✅
+- **Core UI**: 96% ✅
 - **Dialogs**: 80% 🟡
-- **Tools**: 60% 🟡
+- **Tools**: 65% 🟡
 - **Hotkeys**: 95% ✅
-- **Advanced Features**: 55% 🟡
+- **Advanced Features**: 60% 🟡
 
 ---
 
@@ -365,4 +365,5 @@ This document lists all features from the original ActionScript/Adobe AIR versio
 - ✅ Implemented Advanced Preview features (background color picker, grid overlay, zoom controls, animation controls)
 - 🟡 Animation Editor basic implementation (save imports sprites, ThingData creation pending)
 - ✅ Implemented Client Versions Window (manage version definitions)
+- ✅ Implemented Virtual Scrolling for ThingList (performance improvement for large lists)
 

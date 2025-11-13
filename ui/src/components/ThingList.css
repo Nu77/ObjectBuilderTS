@@ -45,8 +45,9 @@
 }
 
 .thing-list-items {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .thing-list-item {

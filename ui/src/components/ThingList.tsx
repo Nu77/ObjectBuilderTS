@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useWorker } from '../contexts/WorkerContext';
 import { useAppStateContext } from '../contexts/AppStateContext';
 import { CommandFactory } from '../services/CommandFactory';
@@ -42,7 +42,12 @@ export const ThingList: React.FC<ThingListProps> = ({ onPaginationChange, onNavi
     currentMin: number;
     currentMax: number;
   } | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
   const clientLoaded = clientInfo?.loaded || false;
+  const itemsContainerRef = useRef<HTMLDivElement>(null);
+  const ITEM_HEIGHT = 80; // Fixed height for each item (including padding and border)
+  const OVERSCAN = 5; // Number of items to render outside visible area
 
   const loadThingList = useCallback(async (targetId?: number) => {
     if (!clientLoaded) {
@@ -267,6 +272,60 @@ export const ThingList: React.FC<ThingListProps> = ({ onPaginationChange, onNavi
 
   // Keyboard navigation (only when list container is focused)
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Virtual scrolling calculations
+  const virtualScrollData = useMemo(() => {
+    if (things.length === 0 || containerHeight === 0) {
+      return {
+        startIndex: 0,
+        endIndex: 0,
+        visibleItems: [],
+        totalHeight: 0,
+        offsetY: 0,
+      };
+    }
+
+    const totalHeight = things.length * ITEM_HEIGHT;
+    const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+    const visibleCount = Math.ceil(containerHeight / ITEM_HEIGHT);
+    const endIndex = Math.min(things.length - 1, startIndex + visibleCount + OVERSCAN * 2);
+    const visibleItems = things.slice(startIndex, endIndex + 1);
+    const offsetY = startIndex * ITEM_HEIGHT;
+
+    return {
+      startIndex,
+      endIndex,
+      visibleItems,
+      totalHeight,
+      offsetY,
+    };
+  }, [things, scrollTop, containerHeight]);
+
+  // Handle scroll
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    setScrollTop(target.scrollTop);
+  }, []);
+
+  // Update container height on resize
+  useEffect(() => {
+    if (!itemsContainerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+
+    resizeObserver.observe(itemsContainerRef.current);
+
+    // Initial height
+    setContainerHeight(itemsContainerRef.current.clientHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [things.length]);
   
   useEffect(() => {
     const listElement = listRef.current;
@@ -300,10 +359,15 @@ export const ThingList: React.FC<ThingListProps> = ({ onPaginationChange, onNavi
         if (newIndex >= 0 && newIndex < things.length) {
           const thing = things[newIndex];
           handleThingClick(thing.id);
-          // Scroll into view
+          // Scroll into view using virtual scrolling
           setTimeout(() => {
-            const element = document.querySelector(`[data-thing-id="${thing.id}"]`);
-            element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (itemsContainerRef.current) {
+              const targetScrollTop = newIndex * ITEM_HEIGHT;
+              itemsContainerRef.current.scrollTo({
+                top: targetScrollTop,
+                behavior: 'smooth'
+              });
+            }
           }, 0);
         }
       }
@@ -375,39 +439,73 @@ export const ThingList: React.FC<ThingListProps> = ({ onPaginationChange, onNavi
               )}
             </span>
           </div>
-          <div className="thing-list-items">
-            {things.map((thing) => (
-              <div
-                key={thing.id}
-                data-thing-id={thing.id}
-                className={`thing-list-item ${
-                  selectedThingIds.includes(thing.id) ? 'selected' : ''
-                }`}
-                onClick={(e) => handleThingClick(thing.id, e)}
-                onDoubleClick={() => handleThingDoubleClick(thing.id)}
-                onContextMenu={(e) => handleContextMenu(e, thing.id)}
-                title={`Thing #${thing.id}${selectedThingIds.length > 1 ? ` (${selectedThingIds.length} selected)` : ''}${thing.name ? ` - ${thing.name}` : ''}`}
-              >
-                <div className="thing-list-item-preview">
-                  {thing.spritePixels || thing.pixels ? (
-                    <SpriteThumbnail 
-                      pixels={thing.spritePixels || thing.pixels} 
-                      size={32} 
-                      scale={2}
-                      format={thing.spritePixels ? 'argb' : 'rgba'} // spritePixels are ARGB; bitmap pixels are RGBA
-                    />
-                  ) : (
-                    <div className="thing-list-item-placeholder">#{thing.id}</div>
-                  )}
-                </div>
-                <div className="thing-list-item-info">
-                  <div className="thing-list-item-id">#{thing.id}</div>
-                  {thing.name && (
-                    <div className="thing-list-item-name">{thing.name}</div>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div 
+            className="thing-list-items" 
+            ref={itemsContainerRef}
+            onScroll={handleScroll}
+            style={{ 
+              height: '100%',
+              overflowY: 'auto',
+              position: 'relative'
+            }}
+          >
+            {/* Virtual scrolling container */}
+            <div 
+              style={{ 
+                height: virtualScrollData.totalHeight,
+                position: 'relative'
+              }}
+            >
+              {/* Offset spacer */}
+              {virtualScrollData.offsetY > 0 && (
+                <div style={{ height: virtualScrollData.offsetY }} />
+              )}
+              
+              {/* Visible items */}
+              {virtualScrollData.visibleItems.map((thing, index) => {
+                const actualIndex = virtualScrollData.startIndex + index;
+                return (
+                  <div
+                    key={thing.id}
+                    data-thing-id={thing.id}
+                    data-index={actualIndex}
+                    className={`thing-list-item ${
+                      selectedThingIds.includes(thing.id) ? 'selected' : ''
+                    }`}
+                    style={{
+                      position: 'absolute',
+                      top: actualIndex * ITEM_HEIGHT,
+                      left: 0,
+                      right: 0,
+                      height: ITEM_HEIGHT,
+                    }}
+                    onClick={(e) => handleThingClick(thing.id, e)}
+                    onDoubleClick={() => handleThingDoubleClick(thing.id)}
+                    onContextMenu={(e) => handleContextMenu(e, thing.id)}
+                    title={`Thing #${thing.id}${selectedThingIds.length > 1 ? ` (${selectedThingIds.length} selected)` : ''}${thing.name ? ` - ${thing.name}` : ''}`}
+                  >
+                    <div className="thing-list-item-preview">
+                      {thing.spritePixels || thing.pixels ? (
+                        <SpriteThumbnail 
+                          pixels={thing.spritePixels || thing.pixels} 
+                          size={32} 
+                          scale={2}
+                          format={thing.spritePixels ? 'argb' : 'rgba'} // spritePixels are ARGB; bitmap pixels are RGBA
+                        />
+                      ) : (
+                        <div className="thing-list-item-placeholder">#{thing.id}</div>
+                      )}
+                    </div>
+                    <div className="thing-list-item-info">
+                      <div className="thing-list-item-id">#{thing.id}</div>
+                      {thing.name && (
+                        <div className="thing-list-item-name">{thing.name}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </>
       )}
