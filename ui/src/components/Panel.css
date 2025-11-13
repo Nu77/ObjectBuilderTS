@@ -7,12 +7,16 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  flex: 1;
 }
 
 .preview-panel {
   width: 100%;
   min-width: 0;
   max-width: none;
+  height: 100%;
+  flex: 1;
 }
 
 .things-panel {
@@ -116,8 +120,18 @@
 .panel-content {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  overflow-x: hidden;
+  padding: 8px;
   transition: max-height 0.3s ease;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-panel .panel-content {
+  padding: 4px 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .panel.collapsed .panel-content {
@@ -136,7 +150,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  min-height: 0;
 }
 
 .preview-placeholder {
@@ -160,11 +175,12 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 4px;
+  padding: 4px 6px;
   background-color: var(--bg-tertiary);
   border-radius: 4px;
   border: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .preview-control-group {

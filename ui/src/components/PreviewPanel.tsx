@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWorker } from '../contexts/WorkerContext';
 import { PreviewCanvas } from './PreviewCanvas';
 import { Panel } from './Panel';
@@ -18,6 +18,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
   const [zoom, setZoom] = useState(1);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [animate, setAnimate] = useState(false);
+  const [showAllPatterns, setShowAllPatterns] = useState(false);
+  const canvasSectionRef = useRef<HTMLDivElement>(null);
 
   // Listen for SetThingDataCommand to update preview
   useEffect(() => {
@@ -78,10 +80,24 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
     setZoom(1);
   };
 
+  // Mouse wheel zoom handler
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom((prev) => Math.max(0.25, Math.min(4, prev + delta)));
+    }
+  };
+
   // Reset frame when thing or frame group changes
   useEffect(() => {
     setCurrentFrame(0);
   }, [thingData, frameGroupType]);
+
+  // Reset showAllPatterns when thing changes
+  useEffect(() => {
+    setShowAllPatterns(false);
+  }, [thingData]);
 
   return (
     <Panel
@@ -93,11 +109,15 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
         <div className="preview-container">
           {thingData ? (
             <>
-              <div className="preview-canvas-section">
+              <div 
+                className="preview-canvas-section"
+                ref={canvasSectionRef}
+                onWheel={handleWheel}
+              >
                 <PreviewCanvas
                   thingData={thingData}
-                  width={280}
-                  height={280}
+                  width={200}
+                  height={200}
                   frameGroupType={frameGroupType}
                   patternX={patternX}
                   patternY={patternY}
@@ -105,13 +125,14 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                   animate={animate}
                   zoom={zoom}
                   currentFrame={currentFrame}
+                  showAllPatterns={showAllPatterns}
                 />
                 {/* Zoom controls */}
                 <div className="preview-zoom-controls">
                   <button 
                     onClick={handleZoomOut}
                     disabled={zoom <= 0.25}
-                    title="Zoom Out"
+                    title="Zoom Out (Ctrl+Wheel)"
                     className="preview-zoom-btn"
                   >
                     −
@@ -120,7 +141,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                   <button 
                     onClick={handleZoomIn}
                     disabled={zoom >= 4}
-                    title="Zoom In"
+                    title="Zoom In (Ctrl+Wheel)"
                     className="preview-zoom-btn"
                   >
                     +
@@ -217,7 +238,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                       </div>
                     )}
                     {/* Pattern Controls with Sliders */}
-                    {frameGroup.patternX > 1 && (
+                    {!showAllPatterns && frameGroup.patternX > 1 && (
                       <div className="preview-control-group">
                         <label>
                           Pattern X: {patternX} / {frameGroup.patternX - 1}
@@ -232,7 +253,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                         />
                       </div>
                     )}
-                    {frameGroup.patternY > 1 && (
+                    {!showAllPatterns && frameGroup.patternY > 1 && (
                       <div className="preview-control-group">
                         <label>
                           Pattern Y: {patternY} / {frameGroup.patternY - 1}
@@ -259,6 +280,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                           value={patternZ}
                           onChange={(e) => setPatternZ(parseInt(e.target.value) || 0)}
                           className="preview-pattern-slider"
+                          disabled={showAllPatterns}
                         />
                       </div>
                     )}
@@ -276,6 +298,21 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ onClose }) => {
                             }}
                           />
                           {' '}Animate
+                        </label>
+                      </div>
+                    )}
+                    {/* Show All Patterns Toggle */}
+                    {frameGroup && (frameGroup.patternX > 1 || frameGroup.patternY > 1) && (
+                      <div className="preview-control-group">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={showAllPatterns}
+                            onChange={(e) => {
+                              setShowAllPatterns(e.target.checked);
+                            }}
+                          />
+                          {' '}Show All Patterns
                         </label>
                       </div>
                     )}

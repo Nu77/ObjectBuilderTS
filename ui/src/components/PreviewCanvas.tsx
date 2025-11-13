@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useAppStateContext } from '../contexts/AppStateContext';
 import './PreviewCanvas.css';
 
 interface PreviewCanvasProps {
@@ -13,7 +12,8 @@ interface PreviewCanvasProps {
   animate?: boolean;
   zoom?: number;
   currentFrame?: number;
-  onFrameChange?: (frame: number) => void;
+  onFrameChange?: (frame: number) => void; // Reserved for future use
+  showAllPatterns?: boolean;
 }
 
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
@@ -27,7 +27,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   animate = false,
   zoom = 1,
   currentFrame: currentFrameProp,
-  onFrameChange,
+  onFrameChange: _onFrameChange,
+  showAllPatterns = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -53,8 +54,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    renderThing(ctx, thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame);
-  }, [thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame]);
+    renderThing(ctx, thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns);
+  }, [thingData, width, height, frameGroupType, patternX, patternY, patternZ, currentFrame, showAllPatterns]);
 
   // Animation effect
   useEffect(() => {
@@ -146,7 +147,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     px: number,
     py: number,
     pz: number,
-    frame: number
+    frame: number,
+    showAllPatterns: boolean = false
   ) => {
     // Clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -195,8 +197,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     }
 
     // Render multi-sprite composition
-    // Show all patterns if patternX > 1 or patternY > 1
-    const showAllPatterns = (frameGroup.patternX > 1 || frameGroup.patternY > 1);
+    // Show all patterns only if explicitly requested
     renderFrameGroup(ctx, frameGroup, groupSprites, canvasWidth, canvasHeight, px, py, pz, frame, showAllPatterns);
   };
 
@@ -213,7 +214,6 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     showAllPatterns: boolean = false
   ) => {
     const spriteSize = frameGroup.exactSize || 32;
-    const layers = frameGroup.layers || 1;
     const patternX = frameGroup.patternX || 1;
     const patternY = frameGroup.patternY || 1;
     const patternZ = frameGroup.patternZ || 1;
@@ -230,29 +230,57 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       const gridWidth = gridCols * cellWidth;
       const gridHeight = gridRows * cellHeight;
       
-      // Scale to fit canvas
+      // Scale to fit canvas, but ensure minimum scale for visibility
       const scaleX = canvasWidth / gridWidth;
       const scaleY = canvasHeight / gridHeight;
-      const scale = Math.min(scaleX, scaleY, 1); // Don't scale up
+      let scale = Math.min(scaleX, scaleY, 1); // Don't scale up, but allow down-scaling
       
+      // Ensure scale is not zero or too small
+      if (scale <= 0 || !isFinite(scale)) {
+        scale = 0.1; // Fallback minimum scale
+      }
+      
+      // Calculate cell dimensions after scaling
       const scaledCellWidth = cellWidth * scale;
       const scaledCellHeight = cellHeight * scale;
-      const scaledSpriteSize = spriteSize * scale;
+      const scaledGridWidth = gridWidth * scale;
+      const scaledGridHeight = gridHeight * scale;
       
-      const startX = (canvasWidth - gridWidth * scale) / 2;
-      const startY = (canvasHeight - gridHeight * scale) / 2;
+      // Center the grid on canvas
+      const startX = Math.max(0, (canvasWidth - scaledGridWidth) / 2);
+      const startY = Math.max(0, (canvasHeight - scaledGridHeight) / 2);
       
+      // Render each cell in the grid
       for (let pyIdx = 0; pyIdx < gridRows; pyIdx++) {
         for (let pxIdx = 0; pxIdx < gridCols; pxIdx++) {
+          // Calculate cell position
           const cellX = startX + pxIdx * scaledCellWidth;
           const cellY = startY + pyIdx * scaledCellHeight;
           
-          // Render this pattern variation
-          ctx.save();
-          ctx.translate(cellX, cellY);
-          ctx.scale(scale, scale);
-          renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame);
-          ctx.restore();
+          // Render this pattern variation in its cell
+          // For patternY (addons), combine base with the patternY layer
+          if (patternY > 1 && pyIdx > 0) {
+            // Render base (patternY=0) first, scaled and positioned
+            ctx.save();
+            ctx.translate(cellX, cellY);
+            ctx.scale(scale, scale);
+            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, 0, pz, frame, 0, 0);
+            ctx.restore();
+            
+            // Then overlay the patternY layer for this cell
+            ctx.save();
+            ctx.translate(cellX, cellY);
+            ctx.scale(scale, scale);
+            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0);
+            ctx.restore();
+          } else {
+            // No patternY variations or base layer, just render the single pattern
+            ctx.save();
+            ctx.translate(cellX, cellY);
+            ctx.scale(scale, scale);
+            renderSinglePattern(ctx, frameGroup, sprites, cellWidth, cellHeight, pxIdx, pyIdx, pz, frame, 0, 0);
+            ctx.restore();
+          }
         }
       }
       return;
@@ -274,15 +302,29 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     const offsetX = (canvasWidth - totalWidth) / 2;
     const offsetY = (canvasHeight - totalHeight) / 2;
     
-    renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyClamped, pzClamped, frameClamped, offsetX, offsetY);
+    // For patternY (addons), combine all patternY layers
+    // patternY=0 is always the base, and patternY>0 are addons that overlay
+    if (patternY > 1) {
+      // Always render base (patternY=0) first
+      renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, 0, pzClamped, frameClamped, offsetX, offsetY);
+      
+      // Then overlay all patternY layers from 1 up to the selected patternY
+      // This shows base + all addons up to the selected one
+      for (let pyIdx = 1; pyIdx <= pyClamped; pyIdx++) {
+        renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyIdx, pzClamped, frameClamped, offsetX, offsetY);
+      }
+    } else {
+      // No patternY variations, just render the single pattern
+      renderSinglePattern(ctx, frameGroup, sprites, totalWidth, totalHeight, pxClamped, pyClamped, pzClamped, frameClamped, offsetX, offsetY);
+    }
   };
 
   const renderSinglePattern = (
     ctx: CanvasRenderingContext2D,
     frameGroup: any,
     sprites: any[],
-    totalWidth: number,
-    totalHeight: number,
+    _totalWidth: number,
+    _totalHeight: number,
     px: number,
     py: number,
     pz: number,
@@ -301,6 +343,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         return frameGroup.getSpriteIndex(w, h, l, px, py, pz, f);
       }
       // Fallback calculation using the same formula as FrameGroup.getSpriteIndex
+      // Formula: ((((((frame % frames) * patternZ + pz) * patternY + py) * patternX + px) * layers + l) * height + h) * width + w
       const frames = frameGroup.frames || 1;
       const patternX = frameGroup.patternX || 1;
       const patternY = frameGroup.patternY || 1;
@@ -324,7 +367,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           // Get sprite index using FrameGroup formula
           const spriteIndex = getSpriteIndex(w, h, l, px, py, pz, frame);
           
-          // Check if spriteIndex is valid and within bounds
+              // Check if spriteIndex is valid and within bounds
           if (spriteIndex >= 0 && spriteIndex < sprites.length) {
             const spriteData = sprites[spriteIndex];
             if (spriteData) {
@@ -337,13 +380,29 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   pixels = spriteData.pixels;
                 } else if (spriteData.pixels instanceof Uint8Array) {
                   pixels = spriteData.pixels.buffer;
+                } else if (Buffer.isBuffer && Buffer.isBuffer(spriteData.pixels)) {
+                  const buffer = spriteData.pixels.buffer;
+                  pixels = buffer instanceof ArrayBuffer ? buffer.slice(
+                    spriteData.pixels.byteOffset,
+                    spriteData.pixels.byteOffset + spriteData.pixels.byteLength
+                  ) : new Uint8Array(spriteData.pixels).buffer;
                 } else {
                   pixels = spriteData.pixels;
                 }
               } else if (spriteData instanceof ArrayBuffer) {
                 pixels = spriteData;
               } else if (spriteData instanceof Uint8Array) {
-                pixels = spriteData.buffer;
+                pixels = spriteData.buffer instanceof ArrayBuffer ? spriteData.buffer : null;
+              } else if (Buffer.isBuffer && Buffer.isBuffer(spriteData)) {
+                const buffer = spriteData.buffer;
+                if (buffer instanceof ArrayBuffer) {
+                  pixels = buffer.slice(
+                    spriteData.byteOffset,
+                    spriteData.byteOffset + spriteData.byteLength
+                  );
+                } else {
+                  pixels = new Uint8Array(spriteData).buffer;
+                }
               } else if (Array.isArray(spriteData)) {
                 // If it's an array, try to use it as pixel data
                 pixels = new Uint8Array(spriteData).buffer;
@@ -358,6 +417,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 renderSpritePixelsAt(ctx, pixels, x, y, spriteSize);
               }
             }
+          } else if (spriteIndex >= sprites.length) {
+            // Sprite index out of bounds - this can happen with incomplete sprite data
+            // Silently skip instead of logging to avoid console spam
           }
         }
       }
@@ -375,10 +437,23 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       let pixelData: Uint8Array;
       if (pixels instanceof ArrayBuffer) {
         pixelData = new Uint8Array(pixels);
-      } else if (Buffer.isBuffer(pixels)) {
+      } else if (Buffer.isBuffer && Buffer.isBuffer(pixels)) {
         pixelData = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
-      } else {
+      } else if (pixels instanceof Uint8Array) {
         pixelData = pixels;
+      } else {
+        console.warn('Unknown pixel data format:', typeof pixels);
+        return;
+      }
+
+      // Validate pixel data length
+      const expectedLength = size * size * 4;
+      if (pixelData.length < expectedLength) {
+        console.warn(`Sprite pixel data too short: expected ${expectedLength} bytes, got ${pixelData.length}`);
+        // Fill with transparent pixels if data is incomplete
+        const imageData = ctx.createImageData(size, size);
+        ctx.putImageData(imageData, x, y);
+        return;
       }
 
       // Create ImageData for the sprite
@@ -391,12 +466,18 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       for (let i = 0; i < pixelCount; i++) {
         const argbIndex = i * 4;
         const rgbaIndex = i * 4;
+        
         if (argbIndex + 3 < pixelData.length && rgbaIndex + 3 < data.length) {
           // Convert from ARGB to RGBA for canvas ImageData
-          data[rgbaIndex] = pixelData[argbIndex + 1] || 0;     // R (from ARGB position 1)
-          data[rgbaIndex + 1] = pixelData[argbIndex + 2] || 0; // G (from ARGB position 2)
-          data[rgbaIndex + 2] = pixelData[argbIndex + 3] || 0; // B (from ARGB position 3)
-          data[rgbaIndex + 3] = pixelData[argbIndex] ?? 255;   // A (from ARGB position 0)
+          const a = pixelData[argbIndex] ?? 255;
+          const r = pixelData[argbIndex + 1] || 0;
+          const g = pixelData[argbIndex + 2] || 0;
+          const b = pixelData[argbIndex + 3] || 0;
+          
+          data[rgbaIndex] = r;     // R
+          data[rgbaIndex + 1] = g;  // G
+          data[rgbaIndex + 2] = b;  // B
+          data[rgbaIndex + 3] = a;  // A
         }
       }
 
@@ -451,11 +532,14 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       <div 
         className="preview-canvas-wrapper"
         style={{
-          width: displayWidth,
-          height: displayHeight,
+          width: '100%',
+          height: '100%',
           maxWidth: '100%',
           maxHeight: '100%',
           overflow: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <canvas
@@ -466,8 +550,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           style={{
             width: displayWidth,
             height: displayHeight,
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top left',
+            imageRendering: 'pixelated',
+            maxWidth: '100%',
+            maxHeight: '100%',
           }}
         />
       </div>

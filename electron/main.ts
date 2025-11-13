@@ -994,7 +994,7 @@ function createMenu(): void {
       label: 'View',
       submenu: [
         {
-          label: 'Toggle Preview Panel',
+          label: 'Toggle Preview',
           accelerator: 'F2',
           click: () => {
             if (mainWindow) {
